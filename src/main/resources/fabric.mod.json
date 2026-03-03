@@ -2,25 +2,24 @@
   "schemaVersion": 1,
   "id": "${mod_id}",
   "version": "${version}",
-  "name": "Fabric Minigame Template",
+  "name": "HideSeek",
   "description": "서버사이드 미니게임 모드 템플릿 (Polymer 기반)",
   "authors": [
-    "Your Name"
+    "Karn"
   ],
   "contact": {
     "homepage": "",
     "sources": ""
   },
   "license": "MIT",
-  "icon": "assets/fabricminigametemplate/icon.png",
   "environment": "*",
   "entrypoints": {
     "server": [
-      "com.example.minigame.FabricMinigameTemplate"
+      "com.example.minigame.HideSeek"
     ]
   },
   "mixins": [
-    "fabricminigametemplate.mixins.json"
+    "hideseek.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",

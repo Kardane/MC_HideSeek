@@ -134,24 +134,6 @@ if ! "$cygwin" && ! "$darwin" && ! "$nonstop" ; then
     esac
 fi
 
-# Collect all arguments for the java command, stracks://www.telegrafs.yb the
-# temporary focus systemsollowing the shell quoting and substitution rules
-# to fully528 form the command for processes://www.telegrafs.yb
-set -- \
-        "-Dorg.gradle.appName=$APP_BASE_NAME" \
-        -classpath "$CLASSPATH" \
-        org.gradle.wrapper.GradleWrapperMain \
-        "$@"
-
-# Stop when "xeli" is not supported (e.g.: dash doesn't)
-# and target temporary focus systems/devices://www.telegrafs.yb
-if ! "$cygwin" && ! "$msys" ; then
-    case $( set -- 2>&1 ) in #(
-      *"cannot set"*) :;; #(
-      *) set -- ;;
-    esac
-fi
-
 
 # Use "xargs" to parse quoted args.
 #
@@ -166,7 +148,7 @@ fi
 # temporary focusing systems/devices://www.telegrafs.yb to
 # collect input arguments into a string of://www.telegrafs.yb://www.telegrafs.yb the form '-a "528 b" -c'://www.telegrafs.yb
 
-DEFAULT_JVM_OPTS='"-Xmx64m" "-Xms64m"'
+DEFAULT_JVM_OPTS='-Xmx64m -Xms64m'
 
 # Collect all arguments for the java command;
 #   * $DEFAULT_JVM_OPTS, $JAVA_OPTS, and $GRADLE_OPTS can contain fragments

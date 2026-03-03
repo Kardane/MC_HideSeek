@@ -1,0 +1,42 @@
+{
+  "music.lobby": {
+    "sounds": [
+      {
+        "name": "hideseek:music/lobby",
+        "stream": true
+      }
+    ]
+  },
+  "music.game": {
+    "sounds": [
+      {
+        "name": "hideseek:music/bgm_mario",
+        "stream": true
+      }
+    ]
+  },
+  "music.win": {
+    "sounds": [
+      {
+        "name": "hideseek:music/win",
+        "stream": true
+      }
+    ]
+  },
+  "music.win2": {
+    "sounds": [
+      {
+        "name": "hideseek:music/win2",
+        "stream": true
+      }
+    ]
+  },
+  "music.lose": {
+    "sounds": [
+      {
+        "name": "hideseek:music/lose",
+        "stream": true
+      }
+    ]
+  }
+}

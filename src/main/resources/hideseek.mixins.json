@@ -4,7 +4,9 @@
 	"package": "com.example.minigame.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"ExampleMixin"
+		"ExampleMixin",
+		"NoItemDropMixin",
+		"ShiftSwapMenuMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

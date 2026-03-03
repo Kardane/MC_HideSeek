@@ -59,6 +59,9 @@ dependencies {
 
     // ─── Fabric Permissions API (JiJ로 포함) ───
     modImplementation include("me.lucko:fabric-permissions-api:${project.fabric_permissions_api_version}")
+
+    // ─── DisguiseLib (JiJ로 포함) ───
+    modImplementation files("libs/disguiselib-1.3.8-1.21.8.jar")
 }
 
 processResources {

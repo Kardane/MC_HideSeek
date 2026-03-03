@@ -1,4 +1,4 @@
-# FabricMinigameTemplate
+# HideSeek
 
 Minecraft 1.21.8 Fabric 서버사이드 전용 모드 프로젝트 템플릿
 Polymer + Patbox 라이브러리 풀셋 탑재
@@ -69,12 +69,12 @@ gradle wrapper --gradle-version 8.12
 ```
 src/main/
 ├── java/com/example/minigame/
-│   ├── FabricMinigameTemplate.java   # 메인 서버 초기화
+│   ├── HideSeek.java   # 메인 서버 초기화
 │   └── mixin/
 │       └── ExampleMixin.java         # Mixin 예제
 └── resources/
     ├── fabric.mod.json               # 모드 메타데이터
-    └── fabricminigametemplate.mixins.json  # Mixin 설정
+└── hideseek.mixins.json  # Mixin 설정
 ```
 
 ---
@@ -388,20 +388,20 @@ src/main/resources/
 ```json
 // en_us.json
 {
-  "text.fabricminigametemplate.welcome": "Welcome to the minigame!",
-  "text.fabricminigametemplate.score": "Score: %s"
+"text.hideseek.welcome": "Welcome to the minigame!",
+"text.hideseek.score": "Score: %s"
 }
 
 // ko_kr.json
 {
-  "text.fabricminigametemplate.welcome": "미니게임에 오신 것을 환영합니다!",
-  "text.fabricminigametemplate.score": "점수: %s"
+"text.hideseek.welcome": "미니게임에 오신 것을 환영합니다!",
+"text.hideseek.score": "점수: %s"
 }
 ```
 
 ```java
 // 번역 가능한 텍스트 사용 (클라이언트 언어에 따라 자동 번역)
-Text welcome = Text.translatable("text.fabricminigametemplate.welcome");
+Text welcome = Text.translatable("text.hideseek.welcome");
 player.sendMessage(welcome);
 ```
 

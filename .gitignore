@@ -30,3 +30,8 @@ run/
 *.class
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+logs/
+mods/
+.tools/
+/config/
+*:Zone.Identifier
