@@ -35,3 +35,5 @@ mods/
 .tools/
 /config/
 *:Zone.Identifier
+eula.txt
+server.properties

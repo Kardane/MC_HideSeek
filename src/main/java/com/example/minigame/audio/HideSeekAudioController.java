@@ -1,6 +1,5 @@
 package com.example.minigame.audio;
 
-import com.example.minigame.HideSeek;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -8,23 +7,22 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.Identifier;
 
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 
 public final class HideSeekAudioController {
     private static final int LOBBY_BGM_LOOP_TICKS = 4900;
-    private static final int GAME_BGM_LOOP_TICKS = 2400;
+    private static final int GAME_TRACK_PADDING_TICKS = 10;
     private static final int RESULT_INTRO_DELAY_TICKS = 10;
     private static final int RESULT_ENCORE_DELAY_TICKS = 40;
-    private static final SoundEvent MUSIC_LOBBY = customSound("music.lobby");
-    private static final SoundEvent MUSIC_GAME = customSound("music.game");
-    private static final SoundEvent MUSIC_WIN = customSound("music.win");
-    private static final SoundEvent MUSIC_WIN2 = customSound("music.win2");
-    private static final SoundEvent MUSIC_LOSE = customSound("music.lose");
+    private static final List<HideSeekAudioCatalog.TimedGameTrack> GAME_TRACKS = HideSeekAudioCatalog.GAME_TRACKS;
 
     private final MinecraftServer server;
     private final Predicate<ServerPlayerEntity> seekerTeamChecker;
     private MusicMode musicMode;
     private long nextMusicTick;
+    private int lastGameTrackIndex;
     private ResultSoundPhase resultSoundPhase;
     private boolean resultSeekerWin;
     private long nextResultSoundTick;
@@ -34,6 +32,7 @@ public final class HideSeekAudioController {
         this.seekerTeamChecker = seekerTeamChecker;
         this.musicMode = MusicMode.NONE;
         this.nextMusicTick = 0L;
+        this.lastGameTrackIndex = -1;
         this.resultSoundPhase = ResultSoundPhase.NONE;
         this.resultSeekerWin = false;
         this.nextResultSoundTick = 0L;
@@ -69,13 +68,17 @@ public final class HideSeekAudioController {
         }
 
         if (this.musicMode == MusicMode.LOBBY) {
-            this.playManagedSoundAll(MUSIC_LOBBY);
+            this.playManagedSoundAll(HideSeekAudioCatalog.LOBBY.id(), HideSeekAudioCatalog.LOBBY.fallback());
             this.nextMusicTick = now + LOBBY_BGM_LOOP_TICKS;
             return;
         }
 
-        this.playManagedSoundAll(MUSIC_GAME);
-        this.nextMusicTick = now + GAME_BGM_LOOP_TICKS;
+        HideSeekAudioCatalog.TimedGameTrack track = this.pickRandomGameTrack();
+        if (track == null) {
+            return;
+        }
+        this.playManagedSoundAll(track.sound().id(), track.sound().fallback());
+        this.nextMusicTick = now + track.durationTicks() + GAME_TRACK_PADDING_TICKS;
     }
 
     public void playWinLoseSounds(boolean seekerWin) {
@@ -98,7 +101,12 @@ public final class HideSeekAudioController {
         if (this.resultSoundPhase == ResultSoundPhase.INTRO) {
             for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
                 boolean winner = this.seekerTeamChecker.test(player) == this.resultSeekerWin;
-                this.playManagedSoundPlayer(player, winner ? MUSIC_WIN : MUSIC_LOSE);
+                this.playManagedSoundPlayer(
+                        player,
+                        winner
+                                ? this.resolveRegisteredOrFallback(HideSeekAudioCatalog.WIN.id(), HideSeekAudioCatalog.WIN.fallback())
+                                : this.resolveRegisteredOrFallback(HideSeekAudioCatalog.LOSE.id(), HideSeekAudioCatalog.LOSE.fallback())
+                );
             }
 
             this.resultSoundPhase = ResultSoundPhase.ENCORE;
@@ -109,7 +117,10 @@ public final class HideSeekAudioController {
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
             boolean winner = this.seekerTeamChecker.test(player) == this.resultSeekerWin;
             if (winner) {
-                this.playManagedSoundPlayer(player, MUSIC_WIN2);
+                this.playManagedSoundPlayer(
+                        player,
+                        this.resolveRegisteredOrFallback(HideSeekAudioCatalog.WIN2.id(), HideSeekAudioCatalog.WIN2.fallback())
+                );
             }
         }
         this.resultSoundPhase = ResultSoundPhase.NONE;
@@ -117,11 +128,13 @@ public final class HideSeekAudioController {
     }
 
     public void stopManagedMusic() {
-        this.stopManagedSoundAll(MUSIC_LOBBY);
-        this.stopManagedSoundAll(MUSIC_GAME);
-        this.stopManagedSoundAll(MUSIC_WIN);
-        this.stopManagedSoundAll(MUSIC_WIN2);
-        this.stopManagedSoundAll(MUSIC_LOSE);
+        this.stopManagedSoundAll(HideSeekAudioCatalog.LOBBY.id());
+        for (HideSeekAudioCatalog.TimedGameTrack track : GAME_TRACKS) {
+            this.stopManagedSoundAll(track.sound().id());
+        }
+        this.stopManagedSoundAll(HideSeekAudioCatalog.WIN.id());
+        this.stopManagedSoundAll(HideSeekAudioCatalog.WIN2.id());
+        this.stopManagedSoundAll(HideSeekAudioCatalog.LOSE.id());
     }
 
     public void clearPendingResultSounds() {
@@ -132,11 +145,28 @@ public final class HideSeekAudioController {
     public void resetState() {
         this.musicMode = MusicMode.NONE;
         this.nextMusicTick = 0L;
+        this.lastGameTrackIndex = -1;
         this.resultSoundPhase = ResultSoundPhase.NONE;
         this.nextResultSoundTick = 0L;
     }
 
-    private void playManagedSoundAll(SoundEvent sound) {
+    private HideSeekAudioCatalog.TimedGameTrack pickRandomGameTrack() {
+        if (GAME_TRACKS.isEmpty()) {
+            return null;
+        }
+
+        int index = ThreadLocalRandom.current().nextInt(GAME_TRACKS.size());
+        if (GAME_TRACKS.size() > 1 && index == this.lastGameTrackIndex) {
+            int offset = 1 + ThreadLocalRandom.current().nextInt(GAME_TRACKS.size() - 1);
+            index = (index + offset) % GAME_TRACKS.size();
+        }
+
+        this.lastGameTrackIndex = index;
+        return GAME_TRACKS.get(index);
+    }
+
+    private void playManagedSoundAll(Identifier soundId, SoundEvent fallback) {
+        SoundEvent sound = this.resolveRegisteredOrFallback(soundId, fallback);
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
             this.playManagedSoundPlayer(player, sound);
         }
@@ -146,24 +176,19 @@ public final class HideSeekAudioController {
         player.playSoundToPlayer(sound, SoundCategory.VOICE, 0.5F, 1.0F);
     }
 
-    private void stopManagedSoundAll(SoundEvent sound) {
-        Identifier id = Registries.SOUND_EVENT.getId(sound);
-        if (id == null) {
-            return;
-        }
-        String soundId = id.toString();
+    private void stopManagedSoundAll(Identifier soundId) {
+        String id = soundId.toString();
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
-            String command = "execute as " + player.getNameForScoreboard() + " run stopsound @s voice " + soundId;
+            String command = "execute as " + player.getNameForScoreboard() + " run stopsound @s voice " + id;
             this.server.getCommandManager().executeWithPrefix(this.server.getCommandSource().withSilent(), command);
         }
     }
 
-    private static SoundEvent customSound(String path) {
-        Identifier id = Identifier.of(HideSeek.MOD_ID, path);
+    private SoundEvent resolveRegisteredOrFallback(Identifier id, SoundEvent fallback) {
         if (Registries.SOUND_EVENT.containsId(id)) {
             return Registries.SOUND_EVENT.get(id);
         }
-        return SoundEvent.of(id);
+        return fallback;
     }
 
     public enum TargetMode {

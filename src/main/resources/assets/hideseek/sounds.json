@@ -7,10 +7,106 @@
       }
     ]
   },
-  "music.game": {
+  "music.game.bgm_mario": {
     "sounds": [
       {
         "name": "hideseek:music/bgm_mario",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.bgm_cheetah": {
+    "sounds": [
+      {
+        "name": "hideseek:music/bgm_cheetah",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.cat_life": {
+    "sounds": [
+      {
+        "name": "hideseek:music/cat_life",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_after_school": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_after_school",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_afternoon_breeze": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_afternoon_breeze",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_be_yourself": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_be_yourself",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_break_time": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_break_time",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_good_day": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_good_day",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_skyward": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_skyward",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_starry_sky": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_starry_sky",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.gt_k_youth": {
+    "sounds": [
+      {
+        "name": "hideseek:music/gt_k_youth",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.rainy_day": {
+    "sounds": [
+      {
+        "name": "hideseek:music/rainy_day",
+        "stream": true
+      }
+    ]
+  },
+  "music.game.recollections": {
+    "sounds": [
+      {
+        "name": "hideseek:music/recollections",
         "stream": true
       }
     ]
