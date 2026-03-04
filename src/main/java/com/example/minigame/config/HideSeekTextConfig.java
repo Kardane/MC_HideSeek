@@ -151,7 +151,7 @@ public final class HideSeekTextConfig {
         map.put("admin_job_items_block_granted", "[HideSeek] 블록 직업 아이템 지급 완료");
         map.put("test_block_disguise_enabled", "[HideSeek] 테스트: 블록팀 위장 상시 허용 ON");
         map.put("test_block_disguise_disabled", "[HideSeek] 테스트: 블록팀 위장 상시 허용 OFF");
-        map.put("job_description_hunter", "&c[사냥꾼] &7발각 시 가속, 블록 상호작용 거리 증가");
+        map.put("job_description_hunter", "&c[사냥꾼] &7깃털 우클릭으로 전방 도약, 블록 상호작용 거리 증가");
         map.put("job_description_bomber", "&c[봄버] &7TNT 투척으로 범위 발각 및 피해 부여");
         map.put("job_description_warden", "&c[워든] &7가장 가까운 블록팀을 지연 발각");
         map.put("job_description_shapeshifter", "&a[형상변환자] &7위장 블록을 다시 굴림");

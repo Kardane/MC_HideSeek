@@ -21,6 +21,7 @@ public final class HideSeekJobConfig {
     private final double hunterInteractionRangeBonus;
     private final int hunterSpeedBoostTicks;
     private final int hunterSpeedBoostAmplifier;
+    private final int hunterLeapCooldownTicks;
 
     private final int bomberCooldownTicks;
     private final int bomberFuseTicks;
@@ -44,6 +45,8 @@ public final class HideSeekJobConfig {
 
     private final String bomberItemName;
     private final List<String> bomberItemLore;
+    private final String hunterLeapItemName;
+    private final List<String> hunterLeapItemLore;
     private final String wardenItemName;
     private final List<String> wardenItemLore;
     private final String shapeshifterItemName;
@@ -57,6 +60,7 @@ public final class HideSeekJobConfig {
             double hunterInteractionRangeBonus,
             int hunterSpeedBoostTicks,
             int hunterSpeedBoostAmplifier,
+            int hunterLeapCooldownTicks,
             int bomberCooldownTicks,
             int bomberFuseTicks,
             double bomberThrowSpeed,
@@ -76,6 +80,8 @@ public final class HideSeekJobConfig {
             double magicianRadius,
             String bomberItemName,
             List<String> bomberItemLore,
+            String hunterLeapItemName,
+            List<String> hunterLeapItemLore,
             String wardenItemName,
             List<String> wardenItemLore,
             String shapeshifterItemName,
@@ -88,6 +94,7 @@ public final class HideSeekJobConfig {
         this.hunterInteractionRangeBonus = hunterInteractionRangeBonus;
         this.hunterSpeedBoostTicks = hunterSpeedBoostTicks;
         this.hunterSpeedBoostAmplifier = hunterSpeedBoostAmplifier;
+        this.hunterLeapCooldownTicks = hunterLeapCooldownTicks;
         this.bomberCooldownTicks = bomberCooldownTicks;
         this.bomberFuseTicks = bomberFuseTicks;
         this.bomberThrowSpeed = bomberThrowSpeed;
@@ -108,6 +115,8 @@ public final class HideSeekJobConfig {
 
         this.bomberItemName = bomberItemName;
         this.bomberItemLore = List.copyOf(bomberItemLore);
+        this.hunterLeapItemName = hunterLeapItemName;
+        this.hunterLeapItemLore = List.copyOf(hunterLeapItemLore);
         this.wardenItemName = wardenItemName;
         this.wardenItemLore = List.copyOf(wardenItemLore);
         this.shapeshifterItemName = shapeshifterItemName;
@@ -123,6 +132,7 @@ public final class HideSeekJobConfig {
                 1.0D,
                 30,
 				0,
+				160,
 				300,
 				60,
 				1.0D,
@@ -142,6 +152,8 @@ public final class HideSeekJobConfig {
                 3.0D,
                 "봄버 TNT",
                 List.of("우클릭: TNT 투척", "폭발 반경 내 블록팀 위장 해제"),
+                "사냥꾼 깃털",
+                List.of("우클릭: 바라보는 방향으로 도약"),
                 "워든 나침판",
                 List.of("우클릭: 가장 가까운 블록팀 발각", "발광 + 위장 금지 부여"),
                 "형상변환자 점액구슬",
@@ -171,6 +183,7 @@ public final class HideSeekJobConfig {
                     readDouble(json, "hunter_interaction_range_bonus", defaults.hunterInteractionRangeBonus),
                     readInt(json, "hunter_speed_boost_ticks", defaults.hunterSpeedBoostTicks),
                     readInt(json, "hunter_speed_boost_amplifier", defaults.hunterSpeedBoostAmplifier),
+                    readInt(json, "hunter_leap_cooldown_ticks", defaults.hunterLeapCooldownTicks),
                     readInt(json, "bomber_cooldown_ticks", defaults.bomberCooldownTicks),
                     readInt(json, "bomber_fuse_ticks", defaults.bomberFuseTicks),
                     readDouble(json, "bomber_throw_speed", defaults.bomberThrowSpeed),
@@ -190,6 +203,8 @@ public final class HideSeekJobConfig {
                     readDouble(json, "magician_radius", defaults.magicianRadius),
                     readString(json, "bomber_item_name", defaults.bomberItemName),
                     readStringList(json, "bomber_item_lore", defaults.bomberItemLore),
+                    readString(json, "hunter_leap_item_name", defaults.hunterLeapItemName),
+                    readStringList(json, "hunter_leap_item_lore", defaults.hunterLeapItemLore),
                     readString(json, "warden_item_name", defaults.wardenItemName),
                     readStringList(json, "warden_item_lore", defaults.wardenItemLore),
                     readString(json, "shapeshifter_item_name", defaults.shapeshifterItemName),
@@ -218,6 +233,7 @@ public final class HideSeekJobConfig {
             double hunterInteractionRangeBonus,
             int hunterSpeedBoostTicks,
             int hunterSpeedBoostAmplifier,
+            int hunterLeapCooldownTicks,
             int bomberCooldownTicks,
             int bomberFuseTicks,
             double bomberThrowSpeed,
@@ -237,6 +253,8 @@ public final class HideSeekJobConfig {
             double magicianRadius,
             String bomberItemName,
             List<String> bomberItemLore,
+            String hunterLeapItemName,
+            List<String> hunterLeapItemLore,
             String wardenItemName,
             List<String> wardenItemLore,
             String shapeshifterItemName,
@@ -249,6 +267,7 @@ public final class HideSeekJobConfig {
         double safeHunterRange = Double.isFinite(hunterInteractionRangeBonus) ? Math.max(0.0D, hunterInteractionRangeBonus) : 1.0D;
         int safeHunterTicks = Math.max(1, hunterSpeedBoostTicks);
         int safeHunterAmp = Math.max(0, hunterSpeedBoostAmplifier);
+        int safeHunterLeapCooldown = Math.max(1, hunterLeapCooldownTicks);
 
         int safeBomberCooldown = Math.max(1, bomberCooldownTicks);
         int safeBomberFuse = Math.max(1, bomberFuseTicks);
@@ -274,6 +293,8 @@ public final class HideSeekJobConfig {
 
         String safeBomberItemName = sanitizeText(bomberItemName, "봄버 TNT");
         List<String> safeBomberItemLore = sanitizeLore(bomberItemLore);
+        String safeHunterLeapItemName = sanitizeText(hunterLeapItemName, "사냥꾼 깃털");
+        List<String> safeHunterLeapItemLore = sanitizeLore(hunterLeapItemLore);
         String safeWardenItemName = sanitizeText(wardenItemName, "워든 나침판");
         List<String> safeWardenItemLore = sanitizeLore(wardenItemLore);
         String safeShapeshifterItemName = sanitizeText(shapeshifterItemName, "형상변환자 점액구슬");
@@ -287,6 +308,7 @@ public final class HideSeekJobConfig {
                 safeHunterRange,
                 safeHunterTicks,
                 safeHunterAmp,
+                safeHunterLeapCooldown,
                 safeBomberCooldown,
                 safeBomberFuse,
                 safeBomberThrowSpeed,
@@ -306,6 +328,8 @@ public final class HideSeekJobConfig {
                 safeMagicianRadius,
                 safeBomberItemName,
                 safeBomberItemLore,
+                safeHunterLeapItemName,
+                safeHunterLeapItemLore,
                 safeWardenItemName,
                 safeWardenItemLore,
                 safeShapeshifterItemName,
@@ -391,6 +415,7 @@ public final class HideSeekJobConfig {
         json.addProperty("hunter_interaction_range_bonus", this.hunterInteractionRangeBonus);
         json.addProperty("hunter_speed_boost_ticks", this.hunterSpeedBoostTicks);
         json.addProperty("hunter_speed_boost_amplifier", this.hunterSpeedBoostAmplifier);
+        json.addProperty("hunter_leap_cooldown_ticks", this.hunterLeapCooldownTicks);
 
         json.addProperty("bomber_cooldown_ticks", this.bomberCooldownTicks);
         json.addProperty("bomber_fuse_ticks", this.bomberFuseTicks);
@@ -414,6 +439,8 @@ public final class HideSeekJobConfig {
 
         json.addProperty("bomber_item_name", this.bomberItemName);
         writeStringList(json, "bomber_item_lore", this.bomberItemLore);
+        json.addProperty("hunter_leap_item_name", this.hunterLeapItemName);
+        writeStringList(json, "hunter_leap_item_lore", this.hunterLeapItemLore);
         json.addProperty("warden_item_name", this.wardenItemName);
         writeStringList(json, "warden_item_lore", this.wardenItemLore);
         json.addProperty("shapeshifter_item_name", this.shapeshifterItemName);
@@ -444,6 +471,10 @@ public final class HideSeekJobConfig {
 
     public int hunterSpeedBoostAmplifier() {
         return this.hunterSpeedBoostAmplifier;
+    }
+
+    public int hunterLeapCooldownTicks() {
+        return this.hunterLeapCooldownTicks;
     }
 
     public int bomberCooldownTicks() {
@@ -520,6 +551,14 @@ public final class HideSeekJobConfig {
 
     public List<String> bomberItemLore() {
         return this.bomberItemLore;
+    }
+
+    public String hunterLeapItemName() {
+        return this.hunterLeapItemName;
+    }
+
+    public List<String> hunterLeapItemLore() {
+        return this.hunterLeapItemLore;
     }
 
     public String wardenItemName() {

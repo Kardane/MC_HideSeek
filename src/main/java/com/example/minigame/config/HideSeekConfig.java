@@ -49,6 +49,23 @@ public final class HideSeekConfig {
     private final double seekerWaitingX;
     private final double seekerWaitingY;
     private final double seekerWaitingZ;
+
+    private final String mapsDir;
+    private final int mapOriginX;
+    private final int mapOriginY;
+    private final int mapOriginZ;
+    private final int gameSpaceSizeX;
+    private final int gameSpaceSizeY;
+    private final int gameSpaceSizeZ;
+
+    private final boolean slotRandomizationEnabled;
+    private final String slotRandomizationMode;
+    private final String slotRandomizationRemoveState;
+    private final int slotRandomizationActiveCountMin;
+    private final int slotRandomizationActiveCountMax;
+    private final String slotRandomizationSeedSalt;
+
+    private final List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks;
     private final String messageInactive;
     private final String messageCharging;
     private final String messageActive;
@@ -99,6 +116,24 @@ public final class HideSeekConfig {
             double seekerWaitingX,
             double seekerWaitingY,
             double seekerWaitingZ,
+
+            String mapsDir,
+            int mapOriginX,
+            int mapOriginY,
+            int mapOriginZ,
+            int gameSpaceSizeX,
+            int gameSpaceSizeY,
+            int gameSpaceSizeZ,
+
+            boolean slotRandomizationEnabled,
+            String slotRandomizationMode,
+            String slotRandomizationRemoveState,
+            int slotRandomizationActiveCountMin,
+            int slotRandomizationActiveCountMax,
+            String slotRandomizationSeedSalt,
+
+            List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks,
+
             String messageInactive,
             String messageCharging,
             String messageActive,
@@ -148,6 +183,22 @@ public final class HideSeekConfig {
         this.seekerWaitingX = seekerWaitingX;
         this.seekerWaitingY = seekerWaitingY;
         this.seekerWaitingZ = seekerWaitingZ;
+
+        this.mapsDir = mapsDir;
+        this.mapOriginX = mapOriginX;
+        this.mapOriginY = mapOriginY;
+        this.mapOriginZ = mapOriginZ;
+        this.gameSpaceSizeX = gameSpaceSizeX;
+        this.gameSpaceSizeY = gameSpaceSizeY;
+        this.gameSpaceSizeZ = gameSpaceSizeZ;
+
+        this.slotRandomizationEnabled = slotRandomizationEnabled;
+        this.slotRandomizationMode = slotRandomizationMode;
+        this.slotRandomizationRemoveState = slotRandomizationRemoveState;
+        this.slotRandomizationActiveCountMin = slotRandomizationActiveCountMin;
+        this.slotRandomizationActiveCountMax = slotRandomizationActiveCountMax;
+        this.slotRandomizationSeedSalt = slotRandomizationSeedSalt;
+        this.defaultDisguiseBlocks = defaultDisguiseBlocks;
         this.messageInactive = messageInactive;
         this.messageCharging = messageCharging;
         this.messageActive = messageActive;
@@ -200,6 +251,27 @@ public final class HideSeekConfig {
                 0.5D,
                 84.0D,
                 0.5D,
+
+                "maps",
+                0,
+                64,
+                0,
+                63,
+                32,
+                63,
+
+                true,
+                "place_or_remove",
+                "minecraft:air",
+                120,
+                200,
+                "hideseek_slots_v1",
+
+                List.of(
+                        new HideSeekDisguiseBlockConfig("minecraft:stone", "minecraft:yellow_concrete", 10.0D),
+                        new HideSeekDisguiseBlockConfig("minecraft:cobblestone", "minecraft:orange_concrete", 5.0D)
+                ),
+
                 "[HideSeek] 위장 상태: 비활성",
                 "[HideSeek] 위장 준비: {progress}%",
                 "[HideSeek] 위장 상태: 활성화 ({block})",
@@ -353,6 +425,78 @@ public final class HideSeekConfig {
                     ? json.get("seeker_waiting_z").getAsDouble()
                     : defaults.seekerWaitingZ;
 
+            String mapsDir = json.has("maps_dir")
+                    ? json.get("maps_dir").getAsString()
+                    : defaults.mapsDir;
+
+            JsonObject mapOrigin = json.has("map_origin") && json.get("map_origin").isJsonObject()
+                    ? json.getAsJsonObject("map_origin")
+                    : null;
+            int mapOriginX = mapOrigin != null
+                    ? readInt(mapOrigin, "x", defaults.mapOriginX)
+                    : readInt(json, "map_origin_x", defaults.mapOriginX);
+            int mapOriginY = mapOrigin != null
+                    ? readInt(mapOrigin, "y", defaults.mapOriginY)
+                    : readInt(json, "map_origin_y", defaults.mapOriginY);
+            int mapOriginZ = mapOrigin != null
+                    ? readInt(mapOrigin, "z", defaults.mapOriginZ)
+                    : readInt(json, "map_origin_z", defaults.mapOriginZ);
+
+            JsonObject gameSpaceSize = json.has("game_space_size") && json.get("game_space_size").isJsonObject()
+                    ? json.getAsJsonObject("game_space_size")
+                    : null;
+            int gameSpaceSizeX = gameSpaceSize != null
+                    ? readInt(gameSpaceSize, "x", defaults.gameSpaceSizeX)
+                    : readInt(json, "game_space_size_x", defaults.gameSpaceSizeX);
+            int gameSpaceSizeY = gameSpaceSize != null
+                    ? readInt(gameSpaceSize, "y", defaults.gameSpaceSizeY)
+                    : readInt(json, "game_space_size_y", defaults.gameSpaceSizeY);
+            int gameSpaceSizeZ = gameSpaceSize != null
+                    ? readInt(gameSpaceSize, "z", defaults.gameSpaceSizeZ)
+                    : readInt(json, "game_space_size_z", defaults.gameSpaceSizeZ);
+
+            JsonObject slot = json.has("slot_randomization") && json.get("slot_randomization").isJsonObject()
+                    ? json.getAsJsonObject("slot_randomization")
+                    : null;
+            boolean slotEnabled = slot != null
+                    ? readBoolean(slot, "enabled", defaults.slotRandomizationEnabled)
+                    : defaults.slotRandomizationEnabled;
+            String slotMode = slot != null
+                    ? readString(slot, "mode", defaults.slotRandomizationMode)
+                    : defaults.slotRandomizationMode;
+            String slotRemoveState = slot != null
+                    ? readString(slot, "remove_state", defaults.slotRandomizationRemoveState)
+                    : defaults.slotRandomizationRemoveState;
+            String slotSeedSalt = slot != null
+                    ? readString(slot, "seed_salt", defaults.slotRandomizationSeedSalt)
+                    : defaults.slotRandomizationSeedSalt;
+
+            JsonObject activeCount = slot != null && slot.has("active_count") && slot.get("active_count").isJsonObject()
+                    ? slot.getAsJsonObject("active_count")
+                    : null;
+            int slotActiveMin = activeCount != null
+                    ? readInt(activeCount, "min", defaults.slotRandomizationActiveCountMin)
+                    : defaults.slotRandomizationActiveCountMin;
+            int slotActiveMax = activeCount != null
+                    ? readInt(activeCount, "max", defaults.slotRandomizationActiveCountMax)
+                    : defaults.slotRandomizationActiveCountMax;
+
+            JsonObject defaultsObj = json.has("defaults") && json.get("defaults").isJsonObject()
+                    ? json.getAsJsonObject("defaults")
+                    : null;
+            List<HideSeekDisguiseBlockConfig> parsedDefaultDisguiseBlocks = defaultsObj != null
+                    ? HideSeekDisguiseBlockConfigCodec.read(defaultsObj, "disguise_blocks")
+                    : List.of();
+            if (!parsedDefaultDisguiseBlocks.isEmpty()) {
+                int dropped = parsedDefaultDisguiseBlocks.size() - HideSeekDisguiseBlockConfigCodec.sanitize(parsedDefaultDisguiseBlocks).size();
+                if (dropped > 0) {
+                    logger.warn("[{}] defaults.disguise_blocks 항목 {}개가 정규화 과정에서 제외됨(중복 marker 또는 잘못된 값)", HideSeek.MOD_ID, dropped);
+                }
+            }
+            List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks = parsedDefaultDisguiseBlocks.isEmpty()
+                    ? defaults.defaultDisguiseBlocks
+                    : parsedDefaultDisguiseBlocks;
+
             String messageInactive = defaults.messageInactive;
             String messageCharging = defaults.messageCharging;
             String messageActive = defaults.messageActive;
@@ -404,6 +548,23 @@ public final class HideSeekConfig {
                     seekerWaitingX,
                     seekerWaitingY,
                     seekerWaitingZ,
+
+                    mapsDir,
+                    mapOriginX,
+                    mapOriginY,
+                    mapOriginZ,
+                    gameSpaceSizeX,
+                    gameSpaceSizeY,
+                    gameSpaceSizeZ,
+
+                    slotEnabled,
+                    slotMode,
+                    slotRemoveState,
+                    slotActiveMin,
+                    slotActiveMax,
+                    slotSeedSalt,
+
+                    defaultDisguiseBlocks,
                     messageInactive,
                     messageCharging,
                     messageActive,
@@ -424,7 +585,6 @@ public final class HideSeekConfig {
                     messageJobInvalidTeam,
                     guiTexts
             );
-            config.save(path);
             return config;
         } catch (Exception e) {
             logger.error("[{}] 설정 파일 로드 실패. 기본값 사용", HideSeek.MOD_ID, e);
@@ -554,6 +714,62 @@ public final class HideSeekConfig {
         return this.seekerWaitingZ;
     }
 
+    public String mapsDir() {
+        return this.mapsDir;
+    }
+
+    public int mapOriginX() {
+        return this.mapOriginX;
+    }
+
+    public int mapOriginY() {
+        return this.mapOriginY;
+    }
+
+    public int mapOriginZ() {
+        return this.mapOriginZ;
+    }
+
+    public int gameSpaceSizeX() {
+        return this.gameSpaceSizeX;
+    }
+
+    public int gameSpaceSizeY() {
+        return this.gameSpaceSizeY;
+    }
+
+    public int gameSpaceSizeZ() {
+        return this.gameSpaceSizeZ;
+    }
+
+    public boolean slotRandomizationEnabled() {
+        return this.slotRandomizationEnabled;
+    }
+
+    public String slotRandomizationMode() {
+        return this.slotRandomizationMode;
+    }
+
+    public String slotRandomizationRemoveState() {
+        return this.slotRandomizationRemoveState;
+    }
+
+    public int slotRandomizationActiveCountMin() {
+        return this.slotRandomizationActiveCountMin;
+    }
+
+    public int slotRandomizationActiveCountMax() {
+        return this.slotRandomizationActiveCountMax;
+    }
+
+    public String slotRandomizationSeedSalt() {
+        return this.slotRandomizationSeedSalt;
+    }
+
+    public List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks() {
+        return this.defaultDisguiseBlocks;
+    }
+
     public String messageInactive() {
         return this.messageInactive;
     }
@@ -664,6 +880,23 @@ public final class HideSeekConfig {
             double seekerWaitingX,
             double seekerWaitingY,
             double seekerWaitingZ,
+
+            String mapsDir,
+            int mapOriginX,
+            int mapOriginY,
+            int mapOriginZ,
+            int gameSpaceSizeX,
+            int gameSpaceSizeY,
+            int gameSpaceSizeZ,
+
+            boolean slotRandomizationEnabled,
+            String slotRandomizationMode,
+            String slotRandomizationRemoveState,
+            int slotRandomizationActiveCountMin,
+            int slotRandomizationActiveCountMax,
+            String slotRandomizationSeedSalt,
+
+            List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks,
             String messageInactive,
             String messageCharging,
             String messageActive,
@@ -763,6 +996,31 @@ public final class HideSeekConfig {
         double safeSeekerWaitingY = Double.isFinite(seekerWaitingY) ? seekerWaitingY : defaults.seekerWaitingY;
         double safeSeekerWaitingZ = Double.isFinite(seekerWaitingZ) ? seekerWaitingZ : defaults.seekerWaitingZ;
 
+        String safeMapsDir = (mapsDir == null || mapsDir.isBlank())
+                ? defaults.mapsDir
+                : mapsDir.trim();
+        int safeMapOriginX = mapOriginX;
+        int safeMapOriginY = mapOriginY;
+        int safeMapOriginZ = mapOriginZ;
+        int safeGameSpaceSizeX = clampInt(gameSpaceSizeX, 1, 1024);
+        int safeGameSpaceSizeY = clampInt(gameSpaceSizeY, 1, 1024);
+        int safeGameSpaceSizeZ = clampInt(gameSpaceSizeZ, 1, 1024);
+
+        boolean safeSlotEnabled = slotRandomizationEnabled;
+        String safeSlotMode = (slotRandomizationMode == null || slotRandomizationMode.isBlank())
+                ? defaults.slotRandomizationMode
+                : slotRandomizationMode.trim();
+        String safeSlotRemoveState = (slotRandomizationRemoveState == null || slotRandomizationRemoveState.isBlank())
+                ? defaults.slotRandomizationRemoveState
+                : slotRandomizationRemoveState.trim();
+        int safeSlotActiveMin = clampInt(slotRandomizationActiveCountMin, 0, 2000000);
+        int safeSlotActiveMax = clampInt(slotRandomizationActiveCountMax, safeSlotActiveMin, 2000000);
+        String safeSlotSeedSalt = (slotRandomizationSeedSalt == null || slotRandomizationSeedSalt.isBlank())
+                ? defaults.slotRandomizationSeedSalt
+                : slotRandomizationSeedSalt;
+
+        List<HideSeekDisguiseBlockConfig> safeDefaultDisguiseBlocks = HideSeekDisguiseBlockConfigCodec.sanitizeOrFallback(defaultDisguiseBlocks, defaults.defaultDisguiseBlocks);
+
         String safeInactive = (messageInactive == null || messageInactive.isBlank())
                 ? defaults.messageInactive
                 : messageInactive;
@@ -849,6 +1107,23 @@ public final class HideSeekConfig {
                 safeSeekerWaitingX,
                 safeSeekerWaitingY,
                 safeSeekerWaitingZ,
+
+                safeMapsDir,
+                safeMapOriginX,
+                safeMapOriginY,
+                safeMapOriginZ,
+                safeGameSpaceSizeX,
+                safeGameSpaceSizeY,
+                safeGameSpaceSizeZ,
+
+                safeSlotEnabled,
+                safeSlotMode,
+                safeSlotRemoveState,
+                safeSlotActiveMin,
+                safeSlotActiveMax,
+                safeSlotSeedSalt,
+
+                safeDefaultDisguiseBlocks,
                 safeInactive,
                 safeCharging,
                 safeActive,
@@ -946,7 +1221,60 @@ public final class HideSeekConfig {
         json.addProperty("seeker_waiting_y", this.seekerWaitingY);
         json.addProperty("seeker_waiting_z", this.seekerWaitingZ);
 
+        json.addProperty("maps_dir", this.mapsDir);
+        JsonObject mapOrigin = new JsonObject();
+        mapOrigin.addProperty("x", this.mapOriginX);
+        mapOrigin.addProperty("y", this.mapOriginY);
+        mapOrigin.addProperty("z", this.mapOriginZ);
+        json.add("map_origin", mapOrigin);
+
+        JsonObject gameSpaceSize = new JsonObject();
+        gameSpaceSize.addProperty("x", this.gameSpaceSizeX);
+        gameSpaceSize.addProperty("y", this.gameSpaceSizeY);
+        gameSpaceSize.addProperty("z", this.gameSpaceSizeZ);
+        json.add("game_space_size", gameSpaceSize);
+
+        JsonObject slot = new JsonObject();
+        slot.addProperty("enabled", this.slotRandomizationEnabled);
+        slot.addProperty("mode", this.slotRandomizationMode);
+        slot.addProperty("remove_state", this.slotRandomizationRemoveState);
+        JsonObject activeCount = new JsonObject();
+        activeCount.addProperty("min", this.slotRandomizationActiveCountMin);
+        activeCount.addProperty("max", this.slotRandomizationActiveCountMax);
+        slot.add("active_count", activeCount);
+        slot.addProperty("seed_salt", this.slotRandomizationSeedSalt);
+        json.add("slot_randomization", slot);
+
+        JsonObject defaultsObj = new JsonObject();
+        defaultsObj.add("disguise_blocks", HideSeekDisguiseBlockConfigCodec.toJsonArray(this.defaultDisguiseBlocks));
+        json.add("defaults", defaultsObj);
+
         Files.writeString(path, GSON.toJson(json));
+    }
+
+    private static String readString(JsonObject json, String key, String fallback) {
+        if (!json.has(key) || !json.get(key).isJsonPrimitive()) {
+            return fallback;
+        }
+        return json.get(key).getAsString();
+    }
+
+    private static int readInt(JsonObject json, String key, int fallback) {
+        return json.has(key) ? json.get(key).getAsInt() : fallback;
+    }
+
+    private static boolean readBoolean(JsonObject json, String key, boolean fallback) {
+        return json.has(key) ? json.get(key).getAsBoolean() : fallback;
+    }
+
+    private static int clampInt(int value, int min, int max) {
+        if (value < min) {
+            return min;
+        }
+        if (value > max) {
+            return max;
+        }
+        return value;
     }
 
     private static Map<String, String> readStringMap(JsonObject json, String key, Map<String, String> fallback) {

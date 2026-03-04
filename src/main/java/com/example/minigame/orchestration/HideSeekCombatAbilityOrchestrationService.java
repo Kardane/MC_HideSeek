@@ -4,6 +4,7 @@ import com.example.minigame.HideSeekService;
 import com.example.minigame.ability.AbilityExecutor;
 import com.example.minigame.ability.AttentionSeedAbilityExecutor;
 import com.example.minigame.ability.BomberAbilityExecutor;
+import com.example.minigame.ability.HunterLeapAbilityExecutor;
 import com.example.minigame.ability.MagicianAbilityExecutor;
 import com.example.minigame.ability.ShapeshifterAbilityExecutor;
 import com.example.minigame.ability.WardenAbilityExecutor;
@@ -58,6 +59,7 @@ public final class HideSeekCombatAbilityOrchestrationService {
         this.abilityExecutorsByItem.clear();
 
         this.registerAbilityExecutor(new BomberAbilityExecutor(this.service));
+        this.registerAbilityExecutor(new HunterLeapAbilityExecutor(this.service));
         this.registerAbilityExecutor(new WardenAbilityExecutor(this.service));
         this.registerAbilityExecutor(new ShapeshifterAbilityExecutor(this.service));
         this.registerAbilityExecutor(new AttentionSeedAbilityExecutor(this.service));

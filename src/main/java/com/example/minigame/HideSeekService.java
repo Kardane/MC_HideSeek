@@ -1,7 +1,10 @@
 package com.example.minigame;
 
 import com.example.minigame.config.HideSeekConfig;
+import com.example.minigame.config.HideSeekDisguiseBlockConfig;
 import com.example.minigame.config.HideSeekJobConfig;
+import com.example.minigame.config.HideSeekMapConfig;
+import com.example.minigame.config.HideSeekMapConfigLoader;
 import com.example.minigame.config.HideSeekResourcePackConfigurer;
 import com.example.minigame.config.HideSeekTextConfig;
 import com.example.minigame.job.BlockJob;
@@ -59,6 +62,7 @@ import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.scoreboard.ScoreAccess;
 import net.minecraft.scoreboard.ScoreHolder;
 import net.minecraft.scoreboard.Scoreboard;
@@ -69,6 +73,8 @@ import net.minecraft.scoreboard.Team;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.structure.StructurePlacementData;
+import net.minecraft.structure.StructureTemplate;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.property.Property;
@@ -78,6 +84,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.world.GameMode;
 import net.minecraft.world.GameRules;
 import net.minecraft.world.World;
@@ -178,6 +185,12 @@ public final class HideSeekService {
     private double seekerWaitingX;
     private double seekerWaitingY;
     private double seekerWaitingZ;
+
+    private List<HideSeekMapConfig> mapConfigs;
+    private HideSeekMapConfig currentMapConfig;
+    private String lastMapId;
+    private List<HideSeekDisguiseBlockConfig> defaultDisguiseBlockConfigs;
+    private List<ResolvedDisguiseBlock> currentRoundDisguiseBlocks;
     private int seekerCountOverride;
     private boolean debugAllowBlockDisguiseOutsideGame;
     private GamePhase gamePhase;
@@ -196,6 +209,7 @@ public final class HideSeekService {
     private long roundStartTick;
     private int phaseTickRate;
     private final Map<UUID, Long> bomberCooldownUntilTickByPlayer = new HashMap<>();
+    private final Map<UUID, Long> hunterLeapCooldownUntilTickByPlayer = new HashMap<>();
     private final Map<UUID, Long> wardenCooldownUntilTickByPlayer = new HashMap<>();
     private final Map<UUID, Long> wardenPendingRevealTickByPlayer = new HashMap<>();
     private final Map<UUID, Long> wardenNextShriekParticleTickByPlayer = new HashMap<>();
@@ -272,6 +286,12 @@ public final class HideSeekService {
         this.seekerWaitingX = 0.5D;
         this.seekerWaitingY = 84.0D;
         this.seekerWaitingZ = 0.5D;
+
+        this.mapConfigs = List.of();
+        this.currentMapConfig = null;
+        this.lastMapId = "";
+        this.defaultDisguiseBlockConfigs = this.config.defaultDisguiseBlocks();
+        this.currentRoundDisguiseBlocks = List.of();
         this.seekerCountOverride = NO_SEEKER_OVERRIDE;
         this.debugAllowBlockDisguiseOutsideGame = false;
         this.gamePhase = GamePhase.IDLE;
@@ -299,7 +319,17 @@ public final class HideSeekService {
         this.textConfig = HideSeekTextConfig.loadOrCreate(this.textConfigPath, this.logger);
         this.jobConfig = HideSeekJobConfig.loadOrCreate(this.jobConfigPath, this.logger);
         this.requiredStationaryTicks = Math.max(1, this.config.crouchTicks());
-        this.disguiseBlockStates = this.resolveBlockStates(this.config.disguiseBlockStates());
+        this.defaultDisguiseBlockConfigs = this.config.defaultDisguiseBlocks();
+        this.mapConfigs = HideSeekMapConfigLoader.loadAll(this.configPath.getParent().resolve(this.config.mapsDir()), this.logger);
+        List<String> defaultDisguiseBlockStates = new ArrayList<>();
+        for (HideSeekDisguiseBlockConfig entry : this.defaultDisguiseBlockConfigs) {
+            if (entry != null && entry.blockState() != null && !entry.blockState().isBlank()) {
+                defaultDisguiseBlockStates.add(entry.blockState());
+            }
+        }
+        this.disguiseBlockStates = defaultDisguiseBlockStates.isEmpty()
+                ? this.resolveBlockStates(this.config.disguiseBlockStates())
+                : this.resolveBlockStates(defaultDisguiseBlockStates);
         this.disguiseBlockState = this.disguiseBlockStates.getFirst();
         this.disguiseBlockDisplayName = Text.translatable(this.disguiseBlockState.getBlock().getTranslationKey());
         this.revealItem = this.resolveRevealItem(this.config.revealItemId());
@@ -346,11 +376,12 @@ public final class HideSeekService {
         this.loadStats();
 
         this.logger.info(
-                "[{}] 위장 설정 리로드 완료 - crouch_ticks={}, seeker_ratio={}, disguise_block_states={}, reveal_item={}, undisguise_item={}, hide_ticks={}, game_ticks={}",
+                "[{}] 위장 설정 리로드 완료 - crouch_ticks={}, seeker_ratio={}, disguise_blocks_defaults={}, maps={}, reveal_item={}, undisguise_item={}, hide_ticks={}, game_ticks={}",
                 HideSeek.MOD_ID,
                 this.config.crouchTicks(),
                 this.config.seekerRatio(),
-                this.config.disguiseBlockStates().size(),
+                this.defaultDisguiseBlockConfigs == null ? 0 : this.defaultDisguiseBlockConfigs.size(),
+                this.mapConfigs == null ? 0 : this.mapConfigs.size(),
                 this.config.revealItemId(),
                 this.config.undisguiseItemId(),
                 this.config.hideTicks(),
@@ -479,13 +510,8 @@ public final class HideSeekService {
         this.clearManagedSeekerSpeedBoost();
         this.stopManagedMusic();
         this.audioController.clearPendingResultSounds();
-        this.bomberCooldownUntilTickByPlayer.clear();
-        this.wardenCooldownUntilTickByPlayer.clear();
-        this.shapeshifterCooldownUntilTickByPlayer.clear();
-        this.attentionSeedCooldownUntilTickByPlayer.clear();
-        this.magicianCooldownUntilTickByPlayer.clear();
-        this.magicianSpinUntilTickByPlayer.clear();
-        this.clearBomberTntEntities();
+        this.clearAllAbilityCooldowns();
+        this.clearAbilityTransientState();
         this.phaseBossBar.clearPlayers();
         this.phaseBossBar.setVisible(false);
         this.saveStats();
@@ -834,6 +860,7 @@ public final class HideSeekService {
         }
 
         this.ensureConfiguredItem(player, this.createConfiguredRevealItem());
+        this.ensureConfiguredItem(player, this.createJobAbilityItem(Items.FEATHER));
         this.ensureConfiguredItem(player, this.createJobAbilityItem(Items.TNT));
         this.ensureConfiguredItem(player, this.createJobAbilityItem(Items.RECOVERY_COMPASS));
         this.ensureConfiguredItem(player, this.createSeekerHelmet());
@@ -976,7 +1003,6 @@ public final class HideSeekService {
 
         UUID disguisedPlayerId = this.playerByDisguiseBlock.get(clickedPos.toImmutable());
         if (disguisedPlayerId == null || disguisedPlayerId.equals(clicker.getUuid())) {
-            this.tryApplyHunterRevealBoost(clicker);
             this.playRevealMissFeedback(clicker);
             return false;
         }
@@ -984,7 +1010,6 @@ public final class HideSeekService {
         ServerPlayerEntity disguisedPlayer = this.server.getPlayerManager().getPlayer(disguisedPlayerId);
         if (disguisedPlayer == null) {
             this.playerByDisguiseBlock.remove(clickedPos.toImmutable());
-            this.tryApplyHunterRevealBoost(clicker);
             this.playRevealMissFeedback(clicker);
             return true;
         }
@@ -992,7 +1017,6 @@ public final class HideSeekService {
         PlayerTrack track = this.trackByPlayer.get(disguisedPlayerId);
         if (track == null || !track.disguised) {
             this.playerByDisguiseBlock.remove(clickedPos.toImmutable());
-            this.tryApplyHunterRevealBoost(clicker);
             this.playRevealMissFeedback(clicker);
             return true;
         }
@@ -1008,9 +1032,6 @@ public final class HideSeekService {
 
         this.clearDisguise(target, track, true);
         this.updateHud(target, 0.0F, false, false);
-        if (applyHunterBoost && revealer != null) {
-            this.tryApplyHunterRevealBoost(revealer);
-        }
 
         if (this.gamePhase == GamePhase.COMBAT) {
             this.roundReveals += 1;
@@ -1057,6 +1078,7 @@ public final class HideSeekService {
         if (player.isSpectator()) {
             this.clearDisguise(player, track, false);
             track.stationaryTicks = 0;
+            track.lastChargeProgressSoundTick = 0L;
             track.lastPos = player.getPos();
             this.clearDisguiseHud(player);
             return;
@@ -1085,6 +1107,7 @@ public final class HideSeekService {
 
         if (!this.isBlockTeamMember(player)) {
             track.stationaryTicks = 0;
+            track.lastChargeProgressSoundTick = 0L;
             track.lastPos = player.getPos();
             this.clearDisguiseHud(player);
             return;
@@ -1092,6 +1115,7 @@ public final class HideSeekService {
 
         if (track.cooldownUntilTick > this.server.getTicks()) {
             track.stationaryTicks = 0;
+            track.lastChargeProgressSoundTick = 0L;
             track.lastPos = player.getPos();
             this.updateCooldownHud(player, track.cooldownUntilTick - this.server.getTicks());
             return;
@@ -1099,6 +1123,7 @@ public final class HideSeekService {
 
         if (!this.canBlockTeamDisguiseNow()) {
             track.stationaryTicks = 0;
+            track.lastChargeProgressSoundTick = 0L;
             track.lastPos = player.getPos();
             this.updateHud(player, 0.0F, false, false);
             return;
@@ -1106,6 +1131,7 @@ public final class HideSeekService {
 
         if (!player.isSneaking()) {
             track.stationaryTicks = 0;
+            track.lastChargeProgressSoundTick = 0L;
             track.lastPos = player.getPos();
             this.updateHud(player, 0.0F, false, false);
             return;
@@ -1113,6 +1139,7 @@ public final class HideSeekService {
 
         if (!this.canAttemptDisguiseAtCurrentPosition(player)) {
             track.stationaryTicks = 0;
+            track.lastChargeProgressSoundTick = 0L;
             track.lastPos = player.getPos();
             this.updateHud(player, 0.0F, false, false);
             return;
@@ -1132,6 +1159,7 @@ public final class HideSeekService {
         if (track.stationaryTicks >= this.requiredStationaryTicks) {
             this.applyDisguise(player, track);
             if (track.disguised) {
+                track.lastChargeProgressSoundTick = 0L;
                 this.enforceLockedPosition(player, track);
                 this.updateHud(player, 1.0F, true, true);
                 return;
@@ -1139,7 +1167,19 @@ public final class HideSeekService {
         }
 
         float progress = this.clamp01((float) track.stationaryTicks / this.requiredStationaryTicks);
+        this.playDisguiseChargingSound(player, track, progress);
         this.updateHud(player, progress, false, true);
+    }
+
+    private void playDisguiseChargingSound(ServerPlayerEntity player, PlayerTrack track, float progress) {
+        long now = this.server.getTicks();
+        if (now < track.lastChargeProgressSoundTick + 6L) {
+            return;
+        }
+
+        float pitch = 0.8F + this.clamp01(progress) * 0.8F;
+        player.playSoundToPlayer(SoundEvents.BLOCK_NOTE_BLOCK_HAT.value(), SoundCategory.PLAYERS, 0.35F, pitch);
+        track.lastChargeProgressSoundTick = now;
     }
 
     private void applyDisguise(ServerPlayerEntity player, PlayerTrack track) {
@@ -1679,7 +1719,8 @@ public final class HideSeekService {
     private String summaryString() {
         return "crouch_ticks=" + this.config.crouchTicks()
                 + ", seeker_ratio=" + this.config.seekerRatio()
-                + ", disguise_block_states=" + this.config.disguiseBlockStates().size()
+                + ", disguise_blocks_defaults=" + (this.defaultDisguiseBlockConfigs == null ? 0 : this.defaultDisguiseBlockConfigs.size())
+                + ", maps=" + (this.mapConfigs == null ? 0 : this.mapConfigs.size())
                 + ", reveal_item=" + this.config.revealItemId()
                 + ", undisguise_item=" + this.config.undisguiseItemId();
     }
@@ -1795,21 +1836,37 @@ public final class HideSeekService {
         }
     }
 
-    private void tryApplyHunterRevealBoost(ServerPlayerEntity player) {
-        if (!this.isSeekerTeamMember(player) || !this.hasJobType(player, PlayerJobType.HUNTER)) {
-            return;
+    public boolean tryUseHunterLeapAbility(ServerPlayerEntity player, ItemStack usedStack, long now) {
+        boolean bypass = this.canBypassJobAbilityRestrictions(player);
+        if (!bypass && (!this.isSeekerTeamMember(player) || !this.hasJobType(player, PlayerJobType.HUNTER))) {
+            return false;
+        }
+        if (this.isOnCooldown(this.hunterLeapCooldownUntilTickByPlayer, player.getUuid(), now)) {
+            return true;
         }
 
-        player.addStatusEffect(new StatusEffectInstance(
-                StatusEffects.SPEED,
-                this.jobConfig.hunterSpeedBoostTicks(),
-                this.jobConfig.hunterSpeedBoostAmplifier(),
-                false,
-                false,
-                true
-        ));
+        Vec3d look = player.getRotationVec(1.0F);
+        Vec3d horizontal = new Vec3d(look.x, 0.0D, look.z);
+        if (horizontal.lengthSquared() < 1.0E-6D) {
+            horizontal = new Vec3d(0.0D, 0.0D, 1.0D);
+        } else {
+            horizontal = horizontal.normalize();
+        }
 
-        this.playEffectSound(player, SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE, 0.9F, 1.2F);
+        double verticalBoost = 0.52D + Math.max(0.0D, look.y) * 0.25D;
+        Vec3d leapVelocity = horizontal.multiply(1.1D).add(0.0D, verticalBoost, 0.0D);
+        player.setVelocity(leapVelocity);
+        player.velocityModified = true;
+
+        if (player.getWorld() instanceof ServerWorld serverWorld) {
+            Vec3d origin = this.resolveAbilityParticleOrigin(player);
+            serverWorld.spawnParticles(ParticleTypes.CLOUD, origin.x, origin.y, origin.z, 20, 0.25D, 0.15D, 0.25D, 0.02D);
+        }
+        this.playEffectSound(player, SoundEvents.ENTITY_BAT_TAKEOFF, 1.0F, 1.0F);
+
+        int cooldownTicks = this.jobConfig.hunterLeapCooldownTicks();
+        this.applyAbilityCooldown(this.hunterLeapCooldownUntilTickByPlayer, player, usedStack, now, cooldownTicks);
+        return true;
     }
 
     public boolean tryUseBomberAbility(ServerPlayerEntity player, ItemStack usedStack, long now) {
@@ -2110,6 +2167,7 @@ public final class HideSeekService {
 
     private void clearPlayerAbilityState(UUID playerId) {
         this.bomberCooldownUntilTickByPlayer.remove(playerId);
+        this.hunterLeapCooldownUntilTickByPlayer.remove(playerId);
         this.wardenCooldownUntilTickByPlayer.remove(playerId);
         this.wardenPendingRevealTickByPlayer.remove(playerId);
         this.wardenNextShriekParticleTickByPlayer.remove(playerId);
@@ -2121,6 +2179,26 @@ public final class HideSeekService {
         this.shapeshifterPreviousBlockByPlayer.remove(playerId);
         this.lastInteractionJobAssignTickByPlayer.remove(playerId);
         this.lastInteractionJobEntityByPlayer.remove(playerId);
+    }
+
+    private void clearAllAbilityCooldowns() {
+        this.bomberCooldownUntilTickByPlayer.clear();
+        this.hunterLeapCooldownUntilTickByPlayer.clear();
+        this.wardenCooldownUntilTickByPlayer.clear();
+        this.shapeshifterCooldownUntilTickByPlayer.clear();
+        this.attentionSeedCooldownUntilTickByPlayer.clear();
+        this.magicianCooldownUntilTickByPlayer.clear();
+    }
+
+    private void clearWardenPendingRevealState() {
+        this.wardenPendingRevealTickByPlayer.clear();
+        this.wardenNextShriekParticleTickByPlayer.clear();
+        this.wardenShriekRemainingCountByPlayer.clear();
+    }
+
+    private void clearAbilityTransientState() {
+        this.magicianSpinUntilTickByPlayer.clear();
+        this.clearBomberTntEntities();
     }
 
     private void clearBomberTntEntities() {
@@ -2340,6 +2418,7 @@ public final class HideSeekService {
     }
 
     public void startRoundFlow() {
+        this.prepareMapForRound();
         this.assignedDisguiseBlockByPlayer.clear();
         this.assignedDisguiseNameByPlayer.clear();
         this.applyTeamJobsForRound();
@@ -2348,17 +2427,10 @@ public final class HideSeekService {
         this.beginRoundStats();
         this.clearManagedSeekerSpeedBoost();
         this.roundStartTick = this.server.getTicks();
-        this.bomberCooldownUntilTickByPlayer.clear();
-        this.wardenCooldownUntilTickByPlayer.clear();
-        this.wardenPendingRevealTickByPlayer.clear();
-        this.wardenNextShriekParticleTickByPlayer.clear();
-        this.wardenShriekRemainingCountByPlayer.clear();
-        this.shapeshifterCooldownUntilTickByPlayer.clear();
-        this.attentionSeedCooldownUntilTickByPlayer.clear();
-        this.magicianCooldownUntilTickByPlayer.clear();
-        this.magicianSpinUntilTickByPlayer.clear();
+        this.clearAllAbilityCooldowns();
+        this.clearWardenPendingRevealState();
+        this.clearAbilityTransientState();
         this.shapeshifterPreviousBlockByPlayer.clear();
-        this.clearBomberTntEntities();
         this.lastCountdownNoticeSecond = -1;
         this.lastHideWarningSecond = -1;
         this.lastGameWarningSecond = -1;
@@ -2368,6 +2440,256 @@ public final class HideSeekService {
         this.phaseBossBar.setVisible(false);
         this.broadcastTemplate(this.textMessage("round_countdown"), PREPARE_COUNTDOWN_TICKS / 20);
         this.lastCountdownNoticeSecond = PREPARE_COUNTDOWN_TICKS / 20;
+    }
+
+    private void prepareMapForRound() {
+        HideSeekMapConfig map = this.selectNextMapConfig();
+        this.currentMapConfig = map;
+        if (map == null) {
+            return;
+        }
+
+        Identifier templateId = Identifier.tryParse(map.structureTemplate());
+        if (templateId == null) {
+            this.logger.warn("[{}] 맵 구조물 템플릿 ID가 잘못됨: mapId={}, template={}", HideSeek.MOD_ID, map.id(), map.structureTemplate());
+            return;
+        }
+
+        ServerWorld world = this.resolveWorld(this.arenaWorldId);
+        if (world == null) {
+            this.logger.warn("[{}] arena_world를 찾지 못함: {}", HideSeek.MOD_ID, this.arenaWorldId);
+            return;
+        }
+
+        BlockPos origin = new BlockPos(this.config.mapOriginX(), this.config.mapOriginY(), this.config.mapOriginZ());
+        this.preloadChunks(world, origin, this.config.gameSpaceSizeX(), this.config.gameSpaceSizeZ());
+        long seed = this.mapSeed(templateId);
+        this.pasteStructure(world, templateId, origin, seed);
+
+        List<HideSeekDisguiseBlockConfig> effectiveDisguiseBlocks = (map.disguiseBlocks() != null && !map.disguiseBlocks().isEmpty())
+                ? map.disguiseBlocks()
+                : this.defaultDisguiseBlockConfigs;
+
+        List<ResolvedDisguiseBlock> resolvedDisguiseBlocks = this.resolveDisguiseBlocks(effectiveDisguiseBlocks);
+        if (resolvedDisguiseBlocks.isEmpty()) {
+            resolvedDisguiseBlocks = this.resolveDisguiseBlocks(this.defaultDisguiseBlockConfigs);
+        }
+        this.currentRoundDisguiseBlocks = resolvedDisguiseBlocks;
+        this.applyDisguiseBlockListForRound(resolvedDisguiseBlocks);
+        if (this.config.slotRandomizationEnabled()) {
+            this.applySlotRandomization(world, origin, resolvedDisguiseBlocks, Random.create(seed ^ 0xD1B54A32D192ED03L));
+        }
+    }
+
+    private HideSeekMapConfig selectNextMapConfig() {
+        if (this.mapConfigs == null || this.mapConfigs.isEmpty()) {
+            return null;
+        }
+        if (this.mapConfigs.size() == 1) {
+            HideSeekMapConfig only = this.mapConfigs.getFirst();
+            this.lastMapId = only.id();
+            return only;
+        }
+
+        HideSeekMapConfig picked = null;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            HideSeekMapConfig candidate = this.mapConfigs.get(ThreadLocalRandom.current().nextInt(this.mapConfigs.size()));
+            if (candidate == null) {
+                continue;
+            }
+            if (this.lastMapId != null && !this.lastMapId.isBlank() && this.lastMapId.equals(candidate.id())) {
+                continue;
+            }
+            picked = candidate;
+            break;
+        }
+        if (picked == null) {
+            picked = this.mapConfigs.getFirst();
+        }
+        this.lastMapId = picked.id();
+        return picked;
+    }
+
+    private void applyDisguiseBlockListForRound(List<ResolvedDisguiseBlock> resolvedDisguiseBlocks) {
+        List<BlockState> states = new ArrayList<>();
+        if (resolvedDisguiseBlocks != null) {
+            for (ResolvedDisguiseBlock entry : resolvedDisguiseBlocks) {
+                if (entry == null) {
+                    continue;
+                }
+                states.add(entry.disguiseBlockState);
+            }
+        }
+        if (states.isEmpty()) {
+            return;
+        }
+
+        this.disguiseBlockStates = List.copyOf(states);
+        this.disguiseBlockState = this.disguiseBlockStates.getFirst();
+        this.disguiseBlockDisplayName = Text.translatable(this.disguiseBlockState.getBlock().getTranslationKey());
+    }
+
+    private void pasteStructure(ServerWorld world, Identifier templateId, BlockPos origin, long seed) {
+        StructureTemplate template = world.getStructureTemplateManager().getTemplate(templateId).orElse(null);
+        if (template == null) {
+            this.logger.warn("[{}] 구조물 템플릿을 찾지 못함: {}", HideSeek.MOD_ID, templateId);
+            return;
+        }
+
+        try {
+            template.place(
+                    world,
+                    origin,
+                    BlockPos.ORIGIN,
+                    new StructurePlacementData(),
+                    Random.create(seed),
+                    2
+            );
+        } catch (Exception e) {
+            this.logger.warn("[{}] 구조물 붙여넣기 실패: {}", HideSeek.MOD_ID, templateId, e);
+        }
+    }
+
+    private void applySlotRandomization(ServerWorld world, BlockPos origin, List<ResolvedDisguiseBlock> resolved, Random random) {
+        if (resolved == null || resolved.isEmpty()) {
+            return;
+        }
+
+        BlockState removeState = this.resolveBlockState(this.config.slotRandomizationRemoveState());
+
+        Map<BlockState, ResolvedDisguiseBlock> byMarkerState = new HashMap<>();
+        for (ResolvedDisguiseBlock entry : resolved) {
+            byMarkerState.put(entry.markerBlockState, entry);
+        }
+
+        List<MarkerSlot> markerSlots = new ArrayList<>();
+
+        int sizeX = this.config.gameSpaceSizeX();
+        int sizeY = this.config.gameSpaceSizeY();
+        int sizeZ = this.config.gameSpaceSizeZ();
+        BlockPos.Mutable cursor = new BlockPos.Mutable();
+        for (int dy = 0; dy < sizeY; dy++) {
+            for (int dz = 0; dz < sizeZ; dz++) {
+                for (int dx = 0; dx < sizeX; dx++) {
+                    cursor.set(origin.getX() + dx, origin.getY() + dy, origin.getZ() + dz);
+                    BlockState state = world.getBlockState(cursor);
+                    ResolvedDisguiseBlock match = byMarkerState.get(state);
+                    if (match != null) {
+                        markerSlots.add(new MarkerSlot(cursor.toImmutable(), match.disguiseBlockState));
+                    }
+                }
+            }
+        }
+
+        int totalSlots = markerSlots.size();
+        if (totalSlots <= 0) {
+            return;
+        }
+
+        int activeMin = Math.max(0, this.config.slotRandomizationActiveCountMin());
+        int activeMax = Math.max(activeMin, this.config.slotRandomizationActiveCountMax());
+        int targetActive = activeMax <= activeMin
+                ? activeMin
+                : activeMin + random.nextInt(activeMax - activeMin + 1);
+        targetActive = Math.min(targetActive, totalSlots);
+
+        this.shuffleMarkerSlots(markerSlots, random);
+        for (int idx = 0; idx < markerSlots.size(); idx++) {
+            MarkerSlot slot = markerSlots.get(idx);
+            BlockState next = idx < targetActive ? slot.disguise : removeState;
+            world.setBlockState(slot.pos, next, 2);
+        }
+    }
+
+    private List<ResolvedDisguiseBlock> resolveDisguiseBlocks(List<HideSeekDisguiseBlockConfig> effectiveDisguiseBlocks) {
+        List<ResolvedDisguiseBlock> out = new ArrayList<>();
+        Set<BlockState> usedMarkerStates = new HashSet<>();
+        for (HideSeekDisguiseBlockConfig entry : effectiveDisguiseBlocks) {
+            if (entry == null) {
+                continue;
+            }
+            if (entry.blockState() == null || entry.blockState().isBlank()) {
+                continue;
+            }
+            if (entry.markerBlockState() == null || entry.markerBlockState().isBlank()) {
+                continue;
+            }
+            double weight = Double.isFinite(entry.weight()) ? entry.weight() : 1.0D;
+            if (weight <= 0.0D) {
+                weight = 0.01D;
+            }
+
+            BlockState disguise = this.resolveBlockState(entry.blockState());
+            BlockState marker = this.resolveBlockState(entry.markerBlockState());
+            if (usedMarkerStates.contains(marker)) {
+                continue;
+            }
+            usedMarkerStates.add(marker);
+            out.add(new ResolvedDisguiseBlock(disguise, marker, weight));
+        }
+        return out;
+    }
+
+    private void preloadChunks(ServerWorld world, BlockPos origin, int sizeX, int sizeZ) {
+        if (sizeX <= 0 || sizeZ <= 0) {
+            return;
+        }
+        int minChunkX = origin.getX() >> 4;
+        int minChunkZ = origin.getZ() >> 4;
+        int maxChunkX = (origin.getX() + sizeX - 1) >> 4;
+        int maxChunkZ = (origin.getZ() + sizeZ - 1) >> 4;
+        for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+            for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+                world.getChunk(cx, cz);
+            }
+        }
+    }
+
+    private ServerWorld resolveWorld(String worldIdText) {
+        Identifier id = Identifier.tryParse(worldIdText);
+        if (id == null) {
+            return null;
+        }
+        RegistryKey<World> key = RegistryKey.of(RegistryKeys.WORLD, id);
+        return this.server.getWorld(key);
+    }
+
+    private long mapSeed(Identifier templateId) {
+        long now = this.server.getTicks();
+        long h1 = (long) templateId.toString().hashCode();
+        long h2 = (long) this.config.slotRandomizationSeedSalt().hashCode();
+        return (now * 31L) ^ (h1 << 1) ^ (h2 << 7);
+    }
+
+    private void shuffleMarkerSlots(List<MarkerSlot> slots, Random random) {
+        for (int i = slots.size() - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            MarkerSlot a = slots.get(i);
+            slots.set(i, slots.get(j));
+            slots.set(j, a);
+        }
+    }
+
+    private static final class MarkerSlot {
+        private final BlockPos pos;
+        private final BlockState disguise;
+
+        private MarkerSlot(BlockPos pos, BlockState disguise) {
+            this.pos = pos;
+            this.disguise = disguise;
+        }
+    }
+
+    private static final class ResolvedDisguiseBlock {
+        private final BlockState disguiseBlockState;
+        private final BlockState markerBlockState;
+        private final double weight;
+
+        private ResolvedDisguiseBlock(BlockState disguiseBlockState, BlockState markerBlockState, double weight) {
+            this.disguiseBlockState = disguiseBlockState;
+            this.markerBlockState = markerBlockState;
+            this.weight = weight;
+        }
     }
 
     private void applyTeamJobsForRound() {
@@ -2496,15 +2818,11 @@ public final class HideSeekService {
         this.lastCountdownNoticeSecond = -1;
         this.lastHideWarningSecond = -1;
         this.lastGameWarningSecond = -1;
+        this.stopManagedMusic();
         this.audioController.resetState();
         this.roundStartTick = 0L;
-        this.bomberCooldownUntilTickByPlayer.clear();
-        this.wardenCooldownUntilTickByPlayer.clear();
-        this.shapeshifterCooldownUntilTickByPlayer.clear();
-        this.attentionSeedCooldownUntilTickByPlayer.clear();
-        this.magicianCooldownUntilTickByPlayer.clear();
-        this.magicianSpinUntilTickByPlayer.clear();
-        this.clearBomberTntEntities();
+        this.clearAllAbilityCooldowns();
+        this.clearAbilityTransientState();
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
             this.clearJobAttributeModifiers(player);
         }
@@ -3100,6 +3418,7 @@ public final class HideSeekService {
                 this.ensureConfiguredItem(player, this.createConfiguredRevealItem());
                 if (job != null) {
                     switch (job.type()) {
+                        case HUNTER -> this.ensureConfiguredItem(player, this.createJobAbilityItem(Items.FEATHER));
                         case BOMBER -> this.ensureConfiguredItem(player, this.createJobAbilityItem(Items.TNT));
                         case WARDEN -> this.ensureConfiguredItem(player, this.createJobAbilityItem(Items.RECOVERY_COMPASS));
                         default -> {
@@ -3195,6 +3514,9 @@ public final class HideSeekService {
     }
 
     private String resolveJobAbilityItemName(Item item) {
+        if (item == Items.FEATHER) {
+            return this.jobConfig.hunterLeapItemName();
+        }
         if (item == Items.TNT) {
             return this.jobConfig.bomberItemName();
         }
@@ -3214,6 +3536,9 @@ public final class HideSeekService {
     }
 
     private List<String> resolveJobAbilityItemLore(Item item) {
+        if (item == Items.FEATHER) {
+            return this.jobConfig.hunterLeapItemLore();
+        }
         if (item == Items.TNT) {
             return this.jobConfig.bomberItemLore();
         }
@@ -3303,13 +3628,47 @@ public final class HideSeekService {
             this.disguiseBlockStates = List.of(Blocks.STONE.getDefaultState());
         }
 
+        List<ResolvedDisguiseBlock> weightedCandidates = this.currentRoundDisguiseBlocks == null
+                ? List.of()
+                : this.currentRoundDisguiseBlocks;
+
         Collections.shuffle(blockPlayers);
         for (int i = 0; i < blockPlayers.size(); i++) {
             ServerPlayerEntity player = blockPlayers.get(i);
-            BlockState assigned = this.disguiseBlockStates.get(i % this.disguiseBlockStates.size());
+            BlockState assigned = this.pickWeightedDisguiseBlock(weightedCandidates);
             this.assignedDisguiseBlockByPlayer.put(player.getUuid(), assigned);
             this.assignedDisguiseNameByPlayer.put(player.getUuid(), Text.translatable(assigned.getBlock().getTranslationKey()));
         }
+    }
+
+    private BlockState pickWeightedDisguiseBlock(List<ResolvedDisguiseBlock> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return this.disguiseBlockStates.get(ThreadLocalRandom.current().nextInt(this.disguiseBlockStates.size()));
+        }
+
+        double weightSum = 0.0D;
+        for (ResolvedDisguiseBlock candidate : candidates) {
+            if (candidate == null) {
+                continue;
+            }
+            weightSum += candidate.weight;
+        }
+        if (weightSum <= 0.0D) {
+            return candidates.get(ThreadLocalRandom.current().nextInt(candidates.size())).disguiseBlockState;
+        }
+
+        double r = ThreadLocalRandom.current().nextDouble(weightSum);
+        double acc = 0.0D;
+        for (ResolvedDisguiseBlock candidate : candidates) {
+            if (candidate == null) {
+                continue;
+            }
+            acc += candidate.weight;
+            if (r <= acc) {
+                return candidate.disguiseBlockState;
+            }
+        }
+        return candidates.getLast().disguiseBlockState;
     }
 
     private void clearInventoriesForRoundStart() {
@@ -3503,6 +3862,7 @@ public final class HideSeekService {
         private boolean invisibilityApplied;
         private boolean hadInvisibilityBeforeDisguise;
         private long cooldownUntilTick;
+        private long lastChargeProgressSoundTick;
         private float lastObservedHealth;
         private long lastDamageTick;
         private long lastManualHealTick;
@@ -3518,6 +3878,7 @@ public final class HideSeekService {
             this.invisibilityApplied = false;
             this.hadInvisibilityBeforeDisguise = false;
             this.cooldownUntilTick = 0L;
+            this.lastChargeProgressSoundTick = 0L;
             this.lastObservedHealth = initialHealth;
             this.lastDamageTick = 0L;
             this.lastManualHealTick = 0L;
