@@ -12,7 +12,7 @@
     "sources": ""
   },
   "license": "MIT",
-  "environment": "*",
+  "environment": "server",
   "entrypoints": {
     "server": [
       "com.example.minigame.HideSeek"

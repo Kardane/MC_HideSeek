@@ -1,6 +1,7 @@
 package com.example.minigame;
 
-import com.example.minigame.audio.HideSeekAudioCatalog;
+import com.example.minigame.v2.HideSeekService;
+import com.example.minigame.v2.audio.HideSeekAudioCatalog;
 import com.example.minigame.v2.bootstrap.HideSeekV2CommandRegistrar;
 import com.example.minigame.v2.bootstrap.HideSeekV2EventRegistrar;
 import com.example.minigame.v2.bootstrap.HideSeekV2Runtime;

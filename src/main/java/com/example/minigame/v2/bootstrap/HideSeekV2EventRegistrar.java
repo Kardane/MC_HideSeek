@@ -1,6 +1,6 @@
 package com.example.minigame.v2.bootstrap;
 
-import com.example.minigame.HideSeekService;
+import com.example.minigame.v2.HideSeekService;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;

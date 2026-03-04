@@ -1,7 +1,7 @@
 package com.example.minigame.v2.bootstrap;
 
-import com.example.minigame.HideSeekService;
-import com.example.minigame.config.HideSeekTextConfig;
+import com.example.minigame.v2.HideSeekService;
+import com.example.minigame.v2.config.HideSeekTextConfig;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.text.Text;
 import org.slf4j.Logger;
