@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"minVersion": "0.8",
-	"package": "com.example.minigame.v2.mixin",
+	"package": "com.hideseek.minigame.mixin",
 	"refmap": "hideseek.refmap.json",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [

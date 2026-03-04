@@ -26,7 +26,7 @@
 
 ## 1) 리뷰 범위
 
-- 코드 기준: `src/main/java/com/example/minigame`
+- 코드 기준: `src/main/java/com/hideseek/minigame`
 - 대상: 엔트리포인트(`HideSeek`), 핵심 서비스(`HideSeekService`), `ability`/`orchestration`/`ui`/`audio`/`stats`/`config`/`job`/`util` 패키지
 - 비대상: 게임 밸런스 수치 자체, 리소스팩 에셋 품질, 외부 라이브러리 내부 구현
 

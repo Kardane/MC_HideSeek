@@ -15,7 +15,7 @@
   "environment": "server",
   "entrypoints": {
     "server": [
-      "com.example.minigame.HideSeek"
+      "com.hideseek.minigame.HideSeek"
     ]
   },
   "mixins": [

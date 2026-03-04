@@ -68,7 +68,7 @@ gradle wrapper --gradle-version 8.12
 
 ```
 src/main/
-├── java/com/example/minigame/
+├── java/com/hideseek/minigame/
 │   ├── HideSeek.java   # 메인 서버 초기화
 │   └── mixin/
 │       └── ExampleMixin.java         # Mixin 예제
