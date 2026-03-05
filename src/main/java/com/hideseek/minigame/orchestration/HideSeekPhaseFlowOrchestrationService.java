@@ -1,8 +1,8 @@
 package com.hideseek.minigame.orchestration;
 
 import com.hideseek.minigame.HideSeekService;
-import com.hideseek.minigame.domain.phase.GamePhase;
-import com.hideseek.minigame.domain.phase.GamePhaseEngine;
+import com.hideseek.minigame.phase.GamePhase;
+import com.hideseek.minigame.phase.GamePhaseEngine;
 
 public final class HideSeekPhaseFlowOrchestrationService {
     private final HideSeekService service;

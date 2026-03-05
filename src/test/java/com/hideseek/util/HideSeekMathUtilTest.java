@@ -1,6 +1,6 @@
-package com.hideseek.minigame.util;
+package com.hideseek.util;
 
-import com.hideseek.minigame.util.HideSeekUtils.HideSeekMathUtil;
+import com.hideseek.minigame.HideSeekUtils.HideSeekMathUtil;
 
 import net.minecraft.util.math.Vec3d;
 import org.junit.jupiter.api.Test;

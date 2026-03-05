@@ -1,4 +1,4 @@
-package com.hideseek.minigame.application.disguise;
+package com.hideseek.minigame;
 
 import com.hideseek.minigame.application.map.HideSeekMapRuntimeSupport;
 import net.minecraft.block.BlockState;

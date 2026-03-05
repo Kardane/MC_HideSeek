@@ -1,6 +1,6 @@
 package com.hideseek.minigame.application.item;
 
-import com.hideseek.minigame.job.HideSeekJobs.PlayerJob;
+import com.hideseek.minigame.HideSeekJobs.PlayerJob;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;

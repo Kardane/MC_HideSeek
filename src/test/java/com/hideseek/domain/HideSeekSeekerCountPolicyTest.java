@@ -1,6 +1,6 @@
-package com.hideseek.minigame.domain.team;
+package com.hideseek.domain;
 
-import com.hideseek.minigame.domain.HideSeekDecisionPolicies;
+import com.hideseek.minigame.HideSeekDecisionPolicies;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

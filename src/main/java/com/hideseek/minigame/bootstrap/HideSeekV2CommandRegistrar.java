@@ -2,8 +2,8 @@ package com.hideseek.minigame.bootstrap;
 
 import com.hideseek.minigame.HideSeek;
 import com.hideseek.minigame.HideSeekService;
-import com.hideseek.minigame.job.HideSeekJobs.BlockJob;
-import com.hideseek.minigame.job.HideSeekJobs.SeekerJob;
+import com.hideseek.minigame.HideSeekJobs.BlockJob;
+import com.hideseek.minigame.HideSeekJobs.SeekerJob;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;

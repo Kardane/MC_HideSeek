@@ -1,7 +1,9 @@
-package com.hideseek.minigame.config;
+package com.hideseek;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.hideseek.minigame.config.HideSeekDisguiseBlockConfig;
+import com.hideseek.minigame.config.HideSeekDisguiseBlockConfigCodec;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

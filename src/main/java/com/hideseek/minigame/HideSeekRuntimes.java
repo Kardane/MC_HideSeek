@@ -1,4 +1,4 @@
-package com.hideseek.minigame.runtime;
+package com.hideseek.minigame;
 
 import com.hideseek.minigame.HideSeekService;
 import net.minecraft.item.ItemStack;

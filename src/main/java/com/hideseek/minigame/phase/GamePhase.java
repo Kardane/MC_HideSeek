@@ -1,4 +1,4 @@
-package com.hideseek.minigame.domain.phase;
+package com.hideseek.minigame.phase;
 
 public enum GamePhase {
     IDLE,

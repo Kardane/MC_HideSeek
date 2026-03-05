@@ -1,6 +1,6 @@
-package com.hideseek.minigame.domain.phase;
+package com.hideseek.minigame.phase;
 
-import com.hideseek.minigame.util.HideSeekUtils.HideSeekMathUtil;
+import com.hideseek.minigame.HideSeekUtils.HideSeekMathUtil;
 
 public final class GamePhaseEngine {
     public GamePhaseTransition evaluate(GamePhase phase, long nowTick, long phaseEndTick) {

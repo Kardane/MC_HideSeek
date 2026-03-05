@@ -1,4 +1,4 @@
-package com.hideseek.minigame.util;
+package com.hideseek.minigame;
 
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;

@@ -8,8 +8,8 @@ import com.hideseek.minigame.ability.HunterLeapAbilityExecutor;
 import com.hideseek.minigame.ability.MagicianAbilityExecutor;
 import com.hideseek.minigame.ability.ShapeshifterAbilityExecutor;
 import com.hideseek.minigame.ability.WardenAbilityExecutor;
-import com.hideseek.minigame.job.HideSeekJobs.PlayerJob;
-import com.hideseek.minigame.job.HideSeekJobs.PlayerJobType;
+import com.hideseek.minigame.HideSeekJobs.PlayerJob;
+import com.hideseek.minigame.HideSeekJobs.PlayerJobType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 

@@ -1,7 +1,7 @@
-package com.hideseek.minigame.domain.round;
+package com.hideseek.domain.round;
 
-import com.hideseek.minigame.domain.HideSeekDecisionPolicies;
-import com.hideseek.minigame.domain.phase.GamePhase;
+import com.hideseek.minigame.HideSeekDecisionPolicies;
+import com.hideseek.minigame.phase.GamePhase;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

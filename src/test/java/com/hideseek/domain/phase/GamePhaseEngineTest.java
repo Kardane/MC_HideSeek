@@ -1,4 +1,7 @@
-package com.hideseek.minigame.domain.phase;
+package com.hideseek.domain.phase;
+
+import com.hideseek.minigame.phase.GamePhase;
+import com.hideseek.minigame.phase.GamePhaseEngine;
 
 import org.junit.jupiter.api.Test;
 

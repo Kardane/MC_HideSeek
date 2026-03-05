@@ -1,4 +1,4 @@
-package com.hideseek.minigame.job;
+package com.hideseek.minigame;
 
 public final class HideSeekJobs {
     private HideSeekJobs() {

@@ -1,6 +1,6 @@
-package com.hideseek.minigame.domain;
+package com.hideseek.minigame;
 
-import com.hideseek.minigame.domain.phase.GamePhase;
+import com.hideseek.minigame.phase.GamePhase;
 
 import java.util.UUID;
 

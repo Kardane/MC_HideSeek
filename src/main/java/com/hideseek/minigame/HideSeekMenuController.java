@@ -1,8 +1,8 @@
-package com.hideseek.minigame.ui;
+package com.hideseek.minigame;
 
 import com.hideseek.minigame.HideSeekService;
-import com.hideseek.minigame.job.HideSeekJobs.BlockJob;
-import com.hideseek.minigame.job.HideSeekJobs.SeekerJob;
+import com.hideseek.minigame.HideSeekJobs.BlockJob;
+import com.hideseek.minigame.HideSeekJobs.SeekerJob;
 import com.hideseek.minigame.stats.HideSeekStatsModels;
 import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;

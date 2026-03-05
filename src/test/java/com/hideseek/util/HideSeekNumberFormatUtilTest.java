@@ -1,6 +1,6 @@
-package com.hideseek.minigame.util;
+package com.hideseek.util;
 
-import com.hideseek.minigame.util.HideSeekUtils.HideSeekNumberFormatUtil;
+import com.hideseek.minigame.HideSeekUtils.HideSeekNumberFormatUtil;
 
 import org.junit.jupiter.api.Test;
 

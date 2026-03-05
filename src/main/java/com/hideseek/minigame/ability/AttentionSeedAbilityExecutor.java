@@ -1,7 +1,7 @@
 package com.hideseek.minigame.ability;
 
 import com.hideseek.minigame.HideSeekService;
-import com.hideseek.minigame.job.HideSeekJobs.PlayerJobType;
+import com.hideseek.minigame.HideSeekJobs.PlayerJobType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;

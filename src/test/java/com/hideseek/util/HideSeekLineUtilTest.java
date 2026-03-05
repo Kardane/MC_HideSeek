@@ -1,6 +1,6 @@
-package com.hideseek.minigame.util;
+package com.hideseek.util;
 
-import com.hideseek.minigame.util.HideSeekUtils.HideSeekLineUtil;
+import com.hideseek.minigame.HideSeekUtils.HideSeekLineUtil;
 
 import org.junit.jupiter.api.Test;
 
