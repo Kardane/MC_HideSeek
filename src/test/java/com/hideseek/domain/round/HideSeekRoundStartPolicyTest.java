@@ -9,33 +9,33 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class HideSeekRoundStartPolicyTest {
     @Test
     void returnsAlreadyInProgressWhenPhaseIsNotIdle() {
-        HideSeekDecisionPolicies.RoundStartPolicy.StartDecision decision =
-                HideSeekDecisionPolicies.RoundStartPolicy.decide(GamePhase.COUNTDOWN, 1, 1);
+        HideSeekDecisionPolicies.RoundStartDecision decision =
+                HideSeekDecisionPolicies.decideRoundStart(GamePhase.COUNTDOWN, 1, 1);
 
-        assertEquals(HideSeekDecisionPolicies.RoundStartPolicy.StartDecision.ALREADY_IN_PROGRESS, decision);
+        assertEquals(HideSeekDecisionPolicies.RoundStartDecision.ALREADY_IN_PROGRESS, decision);
     }
 
     @Test
     void returnsRequiresTeamWhenSeekerTeamMissing() {
-        HideSeekDecisionPolicies.RoundStartPolicy.StartDecision decision =
-                HideSeekDecisionPolicies.RoundStartPolicy.decide(GamePhase.IDLE, 0, 3);
+        HideSeekDecisionPolicies.RoundStartDecision decision =
+                HideSeekDecisionPolicies.decideRoundStart(GamePhase.IDLE, 0, 3);
 
-        assertEquals(HideSeekDecisionPolicies.RoundStartPolicy.StartDecision.REQUIRES_TEAM, decision);
+        assertEquals(HideSeekDecisionPolicies.RoundStartDecision.REQUIRES_TEAM, decision);
     }
 
     @Test
     void returnsRequiresTeamWhenBlockTeamMissing() {
-        HideSeekDecisionPolicies.RoundStartPolicy.StartDecision decision =
-                HideSeekDecisionPolicies.RoundStartPolicy.decide(GamePhase.IDLE, 3, 0);
+        HideSeekDecisionPolicies.RoundStartDecision decision =
+                HideSeekDecisionPolicies.decideRoundStart(GamePhase.IDLE, 3, 0);
 
-        assertEquals(HideSeekDecisionPolicies.RoundStartPolicy.StartDecision.REQUIRES_TEAM, decision);
+        assertEquals(HideSeekDecisionPolicies.RoundStartDecision.REQUIRES_TEAM, decision);
     }
 
     @Test
     void returnsStartableWhenBothTeamsExistInIdlePhase() {
-        HideSeekDecisionPolicies.RoundStartPolicy.StartDecision decision =
-                HideSeekDecisionPolicies.RoundStartPolicy.decide(GamePhase.IDLE, 2, 5);
+        HideSeekDecisionPolicies.RoundStartDecision decision =
+                HideSeekDecisionPolicies.decideRoundStart(GamePhase.IDLE, 2, 5);
 
-        assertEquals(HideSeekDecisionPolicies.RoundStartPolicy.StartDecision.STARTABLE, decision);
+        assertEquals(HideSeekDecisionPolicies.RoundStartDecision.STARTABLE, decision);
     }
 }

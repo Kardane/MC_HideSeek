@@ -10,14 +10,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HideSeekRoundFinishPolicyTest {
     @Test
     void returnsFalseForIdlePhase() {
-        assertFalse(HideSeekDecisionPolicies.RoundFinishPolicy.wasGameInProgress(GamePhase.IDLE));
+        assertFalse(HideSeekDecisionPolicies.isGameInProgress(GamePhase.IDLE));
     }
 
     @Test
     void returnsTrueForActivePhases() {
-        assertTrue(HideSeekDecisionPolicies.RoundFinishPolicy.wasGameInProgress(GamePhase.COUNTDOWN));
-        assertTrue(HideSeekDecisionPolicies.RoundFinishPolicy.wasGameInProgress(GamePhase.HIDING));
-        assertTrue(HideSeekDecisionPolicies.RoundFinishPolicy.wasGameInProgress(GamePhase.COMBAT));
-        assertTrue(HideSeekDecisionPolicies.RoundFinishPolicy.wasGameInProgress(GamePhase.ENDING));
+        assertTrue(HideSeekDecisionPolicies.isGameInProgress(GamePhase.COUNTDOWN));
+        assertTrue(HideSeekDecisionPolicies.isGameInProgress(GamePhase.HIDING));
+        assertTrue(HideSeekDecisionPolicies.isGameInProgress(GamePhase.COMBAT));
+        assertTrue(HideSeekDecisionPolicies.isGameInProgress(GamePhase.ENDING));
     }
 }

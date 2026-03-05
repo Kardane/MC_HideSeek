@@ -11,29 +11,29 @@ class HideSeekRevealResolutionPolicyTest {
     @Test
     void returnsMissWhenTargetMissing() {
         UUID clickerId = UUID.randomUUID();
-        HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution resolution =
-                HideSeekDecisionPolicies.RevealResolutionPolicy.resolve(clickerId, null, false, false, false);
+        HideSeekDecisionPolicies.RevealResolution resolution =
+                HideSeekDecisionPolicies.resolveReveal(clickerId, null, false, false, false);
 
-        assertEquals(HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution.MISS, resolution);
+        assertEquals(HideSeekDecisionPolicies.RevealResolution.MISS, resolution);
     }
 
     @Test
     void returnsMissWhenTargetIsSelf() {
         UUID clickerId = UUID.randomUUID();
-        HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution resolution =
-                HideSeekDecisionPolicies.RevealResolutionPolicy.resolve(clickerId, clickerId, true, true, true);
+        HideSeekDecisionPolicies.RevealResolution resolution =
+                HideSeekDecisionPolicies.resolveReveal(clickerId, clickerId, true, true, true);
 
-        assertEquals(HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution.MISS, resolution);
+        assertEquals(HideSeekDecisionPolicies.RevealResolution.MISS, resolution);
     }
 
     @Test
     void returnsStaleEntryWhenPlayerIsOffline() {
         UUID clickerId = UUID.randomUUID();
         UUID targetId = UUID.randomUUID();
-        HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution resolution =
-                HideSeekDecisionPolicies.RevealResolutionPolicy.resolve(clickerId, targetId, false, true, true);
+        HideSeekDecisionPolicies.RevealResolution resolution =
+                HideSeekDecisionPolicies.resolveReveal(clickerId, targetId, false, true, true);
 
-        assertEquals(HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution.STALE_ENTRY, resolution);
+        assertEquals(HideSeekDecisionPolicies.RevealResolution.STALE_ENTRY, resolution);
     }
 
     @Test
@@ -42,12 +42,12 @@ class HideSeekRevealResolutionPolicyTest {
         UUID targetId = UUID.randomUUID();
 
         assertEquals(
-                HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution.STALE_ENTRY,
-                HideSeekDecisionPolicies.RevealResolutionPolicy.resolve(clickerId, targetId, true, false, true)
+                HideSeekDecisionPolicies.RevealResolution.STALE_ENTRY,
+                HideSeekDecisionPolicies.resolveReveal(clickerId, targetId, true, false, true)
         );
         assertEquals(
-                HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution.STALE_ENTRY,
-                HideSeekDecisionPolicies.RevealResolutionPolicy.resolve(clickerId, targetId, true, true, false)
+                HideSeekDecisionPolicies.RevealResolution.STALE_ENTRY,
+                HideSeekDecisionPolicies.resolveReveal(clickerId, targetId, true, true, false)
         );
     }
 
@@ -55,9 +55,9 @@ class HideSeekRevealResolutionPolicyTest {
     void returnsRevealWhenTargetIsValid() {
         UUID clickerId = UUID.randomUUID();
         UUID targetId = UUID.randomUUID();
-        HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution resolution =
-                HideSeekDecisionPolicies.RevealResolutionPolicy.resolve(clickerId, targetId, true, true, true);
+        HideSeekDecisionPolicies.RevealResolution resolution =
+                HideSeekDecisionPolicies.resolveReveal(clickerId, targetId, true, true, true);
 
-        assertEquals(HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution.REVEAL, resolution);
+        assertEquals(HideSeekDecisionPolicies.RevealResolution.REVEAL, resolution);
     }
 }

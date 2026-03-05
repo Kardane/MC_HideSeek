@@ -28,15 +28,10 @@ import com.hideseek.minigame.HideSeekJobs.SeekerJob;
 import com.hideseek.minigame.audio.HideSeekAudioController;
 import com.hideseek.minigame.orchestration.HideSeekCombatAbilityOrchestrationService;
 import com.hideseek.minigame.orchestration.HideSeekPhaseFlowOrchestrationService;
-import com.hideseek.minigame.orchestration.HideSeekTeamAssignmentService;
-import com.hideseek.minigame.HideSeekRuntimes;
 import com.hideseek.minigame.stats.HideSeekStatsDomainService;
 import com.hideseek.minigame.stats.HideSeekStatsModels;
 import com.hideseek.minigame.HideSeekMenuController;
-import com.hideseek.minigame.HideSeekUtils.HideSeekLineUtil;
-import com.hideseek.minigame.HideSeekUtils.HideSeekMathUtil;
-import com.hideseek.minigame.HideSeekUtils.HideSeekNumberFormatUtil;
-import com.hideseek.minigame.HideSeekUtils.HideSeekTextRenderUtil;
+import com.hideseek.minigame.HideSeekUtils;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.component.DataComponentTypes;
@@ -232,10 +227,6 @@ public final class HideSeekService {
     private final HideSeekResourcePackConfigurer resourcePackConfigurer;
     private final HideSeekPhaseFlowOrchestrationService roundFlowService;
     private final HideSeekCombatAbilityOrchestrationService combatAbilityService;
-    private final HideSeekTeamAssignmentService teamAssignmentService;
-    private final HideSeekRuntimes.PlayerLifecycleRuntime playerLifecycleRuntime;
-    private final HideSeekRuntimes.DisguiseRuntime disguiseRuntime;
-    private final HideSeekRuntimes.RoundFlowRuntime roundFlowRuntime;
     private final GamePhaseEngine phaseEngine;
     private final HideSeekBlockStateResolver blockStateResolver;
 
@@ -320,10 +311,6 @@ public final class HideSeekService {
         this.resourcePackConfigurer = new HideSeekResourcePackConfigurer(this.server, this.logger);
         this.roundFlowService = new HideSeekPhaseFlowOrchestrationService(this);
         this.combatAbilityService = new HideSeekCombatAbilityOrchestrationService(this);
-        this.teamAssignmentService = new HideSeekTeamAssignmentService(this);
-        this.playerLifecycleRuntime = new HideSeekRuntimes.PlayerLifecycleRuntime(this);
-        this.disguiseRuntime = new HideSeekRuntimes.DisguiseRuntime(this);
-        this.roundFlowRuntime = new HideSeekRuntimes.RoundFlowRuntime(this);
         this.phaseEngine = new GamePhaseEngine();
         this.blockStateResolver = new HideSeekBlockStateResolver(this.logger);
     }
@@ -427,7 +414,7 @@ public final class HideSeekService {
     }
 
     public void onPlayerRespawn(ServerPlayerEntity player) {
-        this.playerLifecycleRuntime.onPlayerRespawn(player);
+        this.onPlayerRespawnInternal(player);
     }
 
     public void onPlayerRespawnInternal(ServerPlayerEntity player) {
@@ -450,7 +437,7 @@ public final class HideSeekService {
     }
 
     public void onPlayerJoin(ServerPlayerEntity player) {
-        this.playerLifecycleRuntime.onPlayerJoin(player);
+        this.onPlayerJoinInternal(player);
     }
 
     public void onPlayerJoinInternal(ServerPlayerEntity player) {
@@ -470,7 +457,7 @@ public final class HideSeekService {
     }
 
     public void onPlayerDisconnect(ServerPlayerEntity player) {
-        this.playerLifecycleRuntime.onPlayerDisconnect(player);
+        this.onPlayerDisconnectInternal(player);
     }
 
     public void onPlayerDisconnectInternal(ServerPlayerEntity player) {
@@ -562,7 +549,7 @@ public final class HideSeekService {
     }
 
     public boolean tryUndisguiseWithItem(ServerPlayerEntity player, ItemStack heldStack) {
-        return this.disguiseRuntime.tryUndisguiseWithItem(player, heldStack);
+        return this.tryUndisguiseWithItemInternal(player, heldStack);
     }
 
     public boolean tryUndisguiseWithItemInternal(ServerPlayerEntity player, ItemStack heldStack) {
@@ -639,52 +626,52 @@ public final class HideSeekService {
     }
 
     public Text setBlockTeamPreference(ServerPlayerEntity player) {
-        return this.teamAssignmentService.setBlockTeamPreference(player);
+        return this.setTeamPreferenceInternal(List.of(player), TeamPreference.BLOCK, "team_preference_block_set");
     }
 
     public Text setBlockTeamPreference(Collection<ServerPlayerEntity> players) {
-        return this.teamAssignmentService.setBlockTeamPreference(players);
+        return this.setTeamPreferenceInternal(players, TeamPreference.BLOCK, "team_preference_block_set");
     }
 
     public Text setSeekerTeamPreference(ServerPlayerEntity player) {
-        return this.teamAssignmentService.setSeekerTeamPreference(player);
+        return this.setTeamPreferenceInternal(List.of(player), TeamPreference.SEEKER, "team_preference_seeker_set");
     }
 
     public Text setSeekerTeamPreference(Collection<ServerPlayerEntity> players) {
-        return this.teamAssignmentService.setSeekerTeamPreference(players);
+        return this.setTeamPreferenceInternal(players, TeamPreference.SEEKER, "team_preference_seeker_set");
     }
 
     public Text clearTeamPreference(ServerPlayerEntity player) {
-        return this.teamAssignmentService.clearTeamPreference(player);
+        return this.setTeamPreferenceInternal(List.of(player), TeamPreference.NONE, "team_preference_cleared");
     }
 
     public Text clearTeamPreference(Collection<ServerPlayerEntity> players) {
-        return this.teamAssignmentService.clearTeamPreference(players);
+        return this.setTeamPreferenceInternal(players, TeamPreference.NONE, "team_preference_cleared");
     }
 
     public Text setSeekerJob(ServerPlayerEntity player, SeekerJob job) {
-        Text result = this.teamAssignmentService.setSeekerJob(player, job);
+        Text result = this.setSeekerJobPreferenceInternal(List.of(player), job);
         this.playJobSelectedSound(player);
         this.sendJobDescriptionMessage(player, PlayerJobType.ofSeeker(job));
         return result;
     }
 
     public Text setSeekerJob(Collection<ServerPlayerEntity> players, SeekerJob job) {
-        Text result = this.teamAssignmentService.setSeekerJob(players, job);
+        Text result = this.setSeekerJobPreferenceInternal(players, job);
         this.playJobSelectedSound(players);
         this.sendJobDescriptionMessages(players, PlayerJobType.ofSeeker(job));
         return result;
     }
 
     public Text setBlockJob(ServerPlayerEntity player, BlockJob job) {
-        Text result = this.teamAssignmentService.setBlockJob(player, job);
+        Text result = this.setBlockJobPreferenceInternal(List.of(player), job);
         this.playJobSelectedSound(player);
         this.sendJobDescriptionMessage(player, PlayerJobType.ofBlock(job));
         return result;
     }
 
     public Text setBlockJob(Collection<ServerPlayerEntity> players, BlockJob job) {
-        Text result = this.teamAssignmentService.setBlockJob(players, job);
+        Text result = this.setBlockJobPreferenceInternal(players, job);
         this.playJobSelectedSound(players);
         this.sendJobDescriptionMessages(players, PlayerJobType.ofBlock(job));
         return result;
@@ -838,11 +825,11 @@ public final class HideSeekService {
     }
 
     public Text startGame() {
-        return this.roundFlowRuntime.startGame();
+        return this.startGameInternal();
     }
 
     public Text startGameInternal() {
-        if (HideSeekDecisionPolicies.RoundStartPolicy.decide(this.gamePhase, 1, 1) == HideSeekDecisionPolicies.RoundStartPolicy.StartDecision.ALREADY_IN_PROGRESS) {
+        if (HideSeekDecisionPolicies.decideRoundStart(this.gamePhase, 1, 1) == HideSeekDecisionPolicies.RoundStartDecision.ALREADY_IN_PROGRESS) {
             return this.renderMessage(this.textMessage("game_already_in_progress"), 0, 0, "", "");
         }
 
@@ -856,7 +843,7 @@ public final class HideSeekService {
             }
         }
 
-        if (HideSeekDecisionPolicies.RoundStartPolicy.decide(GamePhase.IDLE, seekerCount, blockCount) == HideSeekDecisionPolicies.RoundStartPolicy.StartDecision.REQUIRES_TEAM) {
+        if (HideSeekDecisionPolicies.decideRoundStart(GamePhase.IDLE, seekerCount, blockCount) == HideSeekDecisionPolicies.RoundStartDecision.REQUIRES_TEAM) {
             return this.renderMessage(this.textMessage("game_start_requires_team"), 0, 0, "", "");
         }
 
@@ -865,7 +852,7 @@ public final class HideSeekService {
     }
 
     public Text forceEndGame() {
-        return this.roundFlowRuntime.forceEndGame();
+        return this.forceEndGameInternal();
     }
 
     public Text forceEndGameInternal() {
@@ -924,7 +911,7 @@ public final class HideSeekService {
     }
 
     public Text randomizeTeams(Integer explicitSeekerCount) {
-        return this.teamAssignmentService.randomizeTeams(explicitSeekerCount);
+        return this.randomizeTeamsInternal(explicitSeekerCount);
     }
 
     public Text randomizeTeamsInternal(Integer explicitSeekerCount) {
@@ -936,7 +923,7 @@ public final class HideSeekService {
         int requestedSeekerCount = explicitSeekerCount != null
                 ? explicitSeekerCount
                 : this.getConfiguredSeekerCount(players.size());
-        int seekerCount = HideSeekDecisionPolicies.SeekerCountPolicy.resolve(explicitSeekerCount, requestedSeekerCount, players.size());
+        int seekerCount = HideSeekDecisionPolicies.resolveSeekerCount(explicitSeekerCount, requestedSeekerCount, players.size());
 
         List<ServerPlayerEntity> preferSeeker = new ArrayList<>();
         List<ServerPlayerEntity> neutral = new ArrayList<>();
@@ -994,7 +981,7 @@ public final class HideSeekService {
     }
 
     public Text resetTeams() {
-        return this.teamAssignmentService.resetTeams();
+        return this.resetTeamsInternal();
     }
 
     public Text resetTeamsInternal() {
@@ -1017,7 +1004,7 @@ public final class HideSeekService {
     }
 
     public boolean tryRevealFromBlockInteraction(ServerPlayerEntity clicker, BlockPos clickedPos, ItemStack heldStack) {
-        return this.disguiseRuntime.tryRevealFromBlockInteraction(clicker, clickedPos, heldStack);
+        return this.tryRevealFromBlockInteractionInternal(clicker, clickedPos, heldStack);
     }
 
     public boolean tryRevealFromBlockInteractionInternal(ServerPlayerEntity clicker, BlockPos clickedPos, ItemStack heldStack) {
@@ -1037,7 +1024,7 @@ public final class HideSeekService {
                 ? null
                 : this.trackByPlayer.get(disguisedPlayerId);
 
-        HideSeekDecisionPolicies.RevealResolutionPolicy.RevealResolution resolution = HideSeekDecisionPolicies.RevealResolutionPolicy.resolve(
+        HideSeekDecisionPolicies.RevealResolution resolution = HideSeekDecisionPolicies.resolveReveal(
                 clicker.getUuid(),
                 disguisedPlayerId,
                 disguisedPlayer != null,
@@ -1716,7 +1703,7 @@ public final class HideSeekService {
     }
 
     private Text renderMessage(String template, int progressPercent, int cooldownSeconds, String finderName, String targetName, Text blockDisplayName) {
-        return HideSeekTextRenderUtil.renderMessage(
+        return HideSeekUtils.renderMessage(
                 template,
                 progressPercent,
                 cooldownSeconds,
@@ -2617,11 +2604,11 @@ public final class HideSeekService {
     }
 
     public void finishRoundState(boolean resetTickRate, boolean teleportToSpawn) {
-        this.roundFlowRuntime.finishRoundState(resetTickRate, teleportToSpawn);
+        this.finishRoundStateInternal(resetTickRate, teleportToSpawn);
     }
 
     public void finishRoundStateInternal(boolean resetTickRate, boolean teleportToSpawn) {
-        boolean wasGameInProgress = HideSeekDecisionPolicies.RoundFinishPolicy.wasGameInProgress(this.gamePhase);
+        boolean wasGameInProgress = HideSeekDecisionPolicies.isGameInProgress(this.gamePhase);
         if (resetTickRate) {
             this.setTickRate(20);
         }
@@ -3070,7 +3057,7 @@ public final class HideSeekService {
     }
 
     private List<String> splitTemplateLines(String template) {
-        return HideSeekLineUtil.splitTemplateLines(template);
+        return HideSeekUtils.splitTemplateLines(template);
     }
 
     public Text menuGuiText(String key) {
@@ -3098,15 +3085,15 @@ public final class HideSeekService {
     }
 
     public String menuFormatPercent(long wins, long total) {
-        return HideSeekNumberFormatUtil.formatPercent(wins, total);
+        return HideSeekUtils.formatPercent(wins, total);
     }
 
     public String menuFormatAverageDecimal(long total, long count) {
-        return HideSeekNumberFormatUtil.formatAverageDecimal(total, count);
+        return HideSeekUtils.formatAverageDecimal(total, count);
     }
 
     public String menuFormatAverageSeconds(long totalTicks, long count) {
-        return HideSeekNumberFormatUtil.formatAverageSeconds(totalTicks, count);
+        return HideSeekUtils.formatAverageSeconds(totalTicks, count);
     }
 
     private Text guiText(String key) {
@@ -3364,11 +3351,11 @@ public final class HideSeekService {
     }
 
     private Vec3d centerOnBlock(Vec3d source) {
-        return HideSeekMathUtil.centerOnBlock(source);
+        return HideSeekUtils.centerOnBlock(source);
     }
 
     private Vec3d seatPosition(Vec3d anchorPos) {
-        return HideSeekMathUtil.seatPosition(anchorPos, SEAT_Y_OFFSET);
+        return HideSeekUtils.seatPosition(anchorPos, SEAT_Y_OFFSET);
     }
 
     private boolean canAttemptDisguiseAtCurrentPosition(ServerPlayerEntity player) {
@@ -3388,7 +3375,7 @@ public final class HideSeekService {
     }
 
     private float clamp01(float value) {
-        return HideSeekMathUtil.clamp01(value);
+        return HideSeekUtils.clamp01(value);
     }
 
     public static final class AliveTeamCounts {

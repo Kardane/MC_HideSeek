@@ -1,6 +1,6 @@
 package com.hideseek.util;
 
-import com.hideseek.minigame.HideSeekUtils.HideSeekLineUtil;
+import com.hideseek.minigame.HideSeekUtils;
 
 import org.junit.jupiter.api.Test;
 
@@ -11,15 +11,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class HideSeekLineUtilTest {
     @Test
     void splitTemplateLinesReturnsSingleEmptyForBlankInput() {
-        assertEquals(List.of(""), HideSeekLineUtil.splitTemplateLines(null));
-        assertEquals(List.of(""), HideSeekLineUtil.splitTemplateLines("   "));
+        assertEquals(List.of(""), HideSeekUtils.splitTemplateLines(null));
+        assertEquals(List.of(""), HideSeekUtils.splitTemplateLines("   "));
     }
 
     @Test
     void splitTemplateLinesSupportsEscapedNewline() {
         assertEquals(
                 List.of("line1", "line2"),
-                HideSeekLineUtil.splitTemplateLines("line1\\nline2")
+                HideSeekUtils.splitTemplateLines("line1\\nline2")
         );
     }
 
@@ -27,7 +27,7 @@ class HideSeekLineUtilTest {
     void splitTemplateLinesSupportsActualNewline() {
         assertEquals(
                 List.of("line1", "line2"),
-                HideSeekLineUtil.splitTemplateLines("line1\nline2")
+                HideSeekUtils.splitTemplateLines("line1\nline2")
         );
     }
 }

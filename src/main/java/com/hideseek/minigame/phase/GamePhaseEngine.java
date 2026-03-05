@@ -1,6 +1,6 @@
 package com.hideseek.minigame.phase;
 
-import com.hideseek.minigame.HideSeekUtils.HideSeekMathUtil;
+import com.hideseek.minigame.HideSeekUtils;
 
 public final class GamePhaseEngine {
     public GamePhaseTransition evaluate(GamePhase phase, long nowTick, long phaseEndTick) {
@@ -48,7 +48,7 @@ public final class GamePhaseEngine {
             if (totalTicks <= 0) {
                 return 0.0F;
             }
-            return HideSeekMathUtil.clamp01((float) safeRemaining / (float) totalTicks);
+            return HideSeekUtils.clamp01((float) safeRemaining / (float) totalTicks);
         }
     }
 }
