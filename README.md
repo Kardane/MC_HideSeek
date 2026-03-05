@@ -81,22 +81,151 @@
 
 권한 플러그인이 없으면 OP 레벨 2 기준 동작.
 
-## 설정 파일
+## 설정 파일 상세
 
-서버 기준 경로: `config/hideseek/`
+기본 경로: `config/hideseek/`
 
-- `hide_seek.json`
-  - 게임 기본 설정(맵, 시간, 좌표, 슬롯 랜덤화, 아이템/전투 관련 값)
-- `hide_seek_text.json`
-  - 메시지/GUI 텍스트
-- `hide_seek_jobs.json`
-  - 직업별 쿨타임/범위/아이템 텍스트
-- `hide_seek_stats.json`
-  - 누적 통계 저장 파일
-- `maps/*.json`
-  - 맵 로딩 대상
+### 파일 목록
 
-맵 설정 예시:
+- `hide_seek.json`: 게임/좌표/아이템/맵/블록/슬롯 랜덤화 메인 설정
+- `hide_seek_text.json`: 메시지/GUI 텍스트 설정
+- `hide_seek_jobs.json`: 직업 능력치/쿨타임/아이템명/아이템 설명
+- `hide_seek_stats.json`: 통계 저장(자동 생성, 자동 갱신)
+- `maps/*.json`: 맵별 구조물/블록 후보 설정
+
+### 1) `hide_seek.json` (메인 게임 설정)
+
+주요 키와 기본값:
+
+| 구분 | 키 | 기본값 | 설명 |
+|---|---|---:|---|
+| 진행 | `crouch_ticks` | `60` | 위장 준비에 필요한 웅크리기 틱 |
+| 진행 | `seeker_ratio` | `0.2` | 술래 비율(팀 랜덤 분배 시 기준) |
+| 진행 | `hide_ticks` | `600` | 숨는 시간 |
+| 진행 | `game_ticks` | `9600` | 전투 시간 |
+| 진행 | `heal_cooldown_ticks` | `60` | 회복 관련 쿨타임 |
+| 진행 | `seeker_endgame_speed_level` | `1` | 엔드게임 술래 속도 효과 레벨 |
+| 진행 | `seeker_max_health` | `20.0` | 술래 최대 체력 |
+| 아이템 | `reveal_item` | `minecraft:brush` | 술래 발각 아이템 |
+| 아이템 | `reveal_item_name` | `&c술래의 솔` | 발각 아이템 표시 이름 |
+| 아이템 | `reveal_item_lore` | `["&7블록팀을 찾아내는 도구","&e우클릭으로 발각"]` | 발각 아이템 설명 |
+| 아이템 | `undisguise_item` | `minecraft:magma_cream` | 블록팀 위장 해제 아이템 |
+| 아이템 | `undisguise_item_name` | `&a위장 해제` | 위장 해제 아이템 이름 |
+| 아이템 | `undisguise_item_lore` | `["&7우클릭해서 위장 해제"]` | 위장 해제 아이템 설명 |
+| 전투 | `reveal_attack_damage` | `7.0` | 발각 무기 공격력 |
+| 전투 | `reveal_attack_speed` | `1.6` | 발각 무기 공격속도 |
+| 리소스 | `resource_pack_zip_path` | `world/resources.zip` | 서버 리소스팩 ZIP 경로 |
+
+좌표/월드 키:
+
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `arena_world` | `minecraft:overworld` | 게임 공간 월드 ID |
+| `arena_x`, `arena_y`, `arena_z` | `0.5, 64.0, 0.5` | 게임 공간 기준 좌표 |
+| `spawn_world` | `minecraft:overworld` | 종료/초기화 후 스폰 월드 |
+| `spawn_x`, `spawn_y`, `spawn_z` | `0.5, 64.0, 0.5` | 스폰 좌표 |
+| `seeker_waiting_world` | `minecraft:overworld` | 술래 대기 월드 |
+| `seeker_waiting_x`, `seeker_waiting_y`, `seeker_waiting_z` | `0.5, 84.0, 0.5` | 술래 대기 좌표 |
+
+맵/공간 키:
+
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `maps_dir` | `maps` | 맵 JSON 디렉터리 |
+| `map_origin` | `{ "x":0, "y":64, "z":0 }` | 구조물 붙여넣기 시작 좌표 |
+| `game_space_size` | `{ "x":63, "y":32, "z":63 }` | 슬롯 랜덤화 스캔 범위 |
+
+블록/슬롯 랜덤화 키:
+
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `slot_randomization.enabled` | `true` | 라운드 시작 시 슬롯 랜덤화 사용 여부 |
+| `slot_randomization.mode` | `place_or_remove` | 슬롯 처리 모드 |
+| `slot_randomization.remove_state` | `minecraft:air` | 비활성 슬롯 치환 블록 |
+| `slot_randomization.active_count.min` | `120` | 활성 슬롯 최소 개수 |
+| `slot_randomization.active_count.max` | `200` | 활성 슬롯 최대 개수 |
+| `slot_randomization.seed_salt` | `hideseek_slots_v1` | 랜덤 시드 보조 문자열 |
+| `defaults.disguise_blocks` | 2개 기본 엔트리 | 맵별 설정이 없을 때 기본 위장 후보 |
+
+`defaults.disguise_blocks` 기본값:
+
+```json
+[
+  { "block_state": "minecraft:stone", "marker_block_state": "minecraft:yellow_concrete", "weight": 10.0 },
+  { "block_state": "minecraft:cobblestone", "marker_block_state": "minecraft:orange_concrete", "weight": 5.0 }
+]
+```
+
+호환(레거시) 키도 일부 읽음:
+
+- `crouch_seconds` (구형 초 단위)
+- `seeker_count` (구형 술래 수)
+- `disguise_block_state` / `disguise_block` (구형 단일 블록 문자열)
+- `map_origin_x/y/z`, `game_space_size_x/y/z` (구형 평면 키)
+
+### 2) `hide_seek_text.json` (텍스트 설정)
+
+구조:
+
+```json
+{
+  "messages": { "키": "문자열" },
+  "gui_texts": { "키": "문자열" }
+}
+```
+
+핵심:
+
+- `messages`: 알림, 승패, 쿨다운, 오류, 직업 설명 등
+- `gui_texts`: 메뉴 제목/버튼/통계 라벨
+- `&` 또는 `§` 색 코드 사용 가능
+- `\\n` 또는 실제 줄바꿈 둘 다 처리 가능
+
+자주 쓰는 플레이스홀더:
+
+- 공통: `{progress}`, `{cooldown}`, `{seconds}`, `{finder}`, `{target}`, `{summary}`, `{block}`, `{count}`
+- 팀/통계: `{seekers}`, `{blocks}`, `{value}`
+- 직업 설정: `{job}`, `{skipped}`, `{player}`, `{label}`
+
+### 3) `hide_seek_jobs.json` (직업 능력 설정)
+
+술래 직업 키:
+
+| 직업 | 키 |
+|---|---|
+| 사냥꾼 | `hunter_interaction_range_bonus`, `hunter_speed_boost_ticks`, `hunter_speed_boost_amplifier`, `hunter_leap_cooldown_ticks` |
+| 봄버 | `bomber_cooldown_ticks`, `bomber_fuse_ticks`, `bomber_throw_speed`, `bomber_explosion_radius`, `bomber_damage` |
+| 워든 | `warden_speed_penalty_ratio`, `warden_cooldown_ticks`, `warden_unlock_delay_ticks`, `warden_glow_ticks`, `warden_no_disguise_ticks`, `warden_search_range` |
+
+블록 직업 키:
+
+| 직업 | 키 |
+|---|---|
+| 형상변환자 | `shapeshifter_cooldown_ticks` |
+| 관심종자 | `attention_seed_cooldown_ticks`, `attention_seed_time_reduce_percent` |
+| 마술사 | `magician_cooldown_ticks`, `magician_spin_ticks`, `magician_radius` |
+
+기본 핵심값:
+
+- 사냥꾼 도약 쿨타임: `160`
+- 봄버 쿨타임/폭발 반경: `300` / `4.0`
+- 워든 쿨타임/탐색 범위: `1200` / `128.0`
+- 형상변환자 쿨타임: `200`
+- 관심종자 쿨타임/시간감소율: `200` / `1.5`
+- 마술사 쿨타임/범위: `300` / `3.0`
+
+직업별 아이템 텍스트 키:
+
+- `<job>_item_name`
+- `<job>_item_lore`
+
+레거시 호환:
+
+- `attention_seed_time_reduce_ticks` 입력 시 내부에서 퍼센트로 환산 처리
+
+### 4) `maps/*.json` (맵 설정)
+
+각 파일은 맵 1개 정의:
 
 ```json
 {
@@ -111,6 +240,31 @@
   ]
 }
 ```
+
+필드 설명:
+
+| 키 | 설명 |
+|---|---|
+| `id` | 맵 고유 ID (중복 불가) |
+| `structure_template` | 로드할 구조물 템플릿 ID |
+| `disguise_blocks[].block_state` | 실제 게임에서 채울 블록 |
+| `disguise_blocks[].marker_block_state` | 구조물 안 슬롯 표시용 마커 블록 |
+| `disguise_blocks[].weight` | 블록 선택 가중치 |
+
+동작 포인트:
+
+- 라운드 시작 시 마커 블록 스캔 후 실제 블록으로 치환
+- `slot_randomization` 설정으로 활성 슬롯 수 랜덤 결정
+- 동일 `marker_block_state` 중복은 정규화 단계에서 제거
+
+### 5) `hide_seek_stats.json` (통계 저장)
+
+자동 생성/자동 저장 파일.
+
+- 수동 편집은 가능하지만 실행 중 수정은 권장하지 않음
+- 주요 구조:
+  - `players.<uuid>.*` (개인 플레이/직업/킬데스/생존 통계)
+  - `game.*` (전체 게임 수, 승패, 평균 지표 원본값)
 
 ## 프로젝트 구조
 
