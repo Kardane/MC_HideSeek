@@ -257,6 +257,35 @@
 - `slot_randomization` 설정으로 활성 슬롯 수 랜덤 결정
 - 동일 `marker_block_state` 중복은 정규화 단계에서 제거
 
+블록 치환 로직 상세(라운드 시작 시):
+
+1. `maps/<map>.json`의 `disguise_blocks`를 읽고 유효성 정리
+   - `block_state`/`marker_block_state`가 비어 있으면 제외
+   - `weight <= 0` 또는 비정상 값이면 `0.01`로 보정
+   - `marker_block_state` 중복은 첫 엔트리만 유지
+   - 맵 파일에 `disguise_blocks`가 없거나 비어 있으면 `hide_seek.json`의 `defaults.disguise_blocks` 사용
+2. 구조물을 `map_origin`에 붙여넣은 뒤 `game_space_size` 범위를 3중 루프로 스캔
+3. 스캔한 위치의 현재 블록이 `marker_block_state`와 일치하면 슬롯 후보로 수집
+4. 활성 슬롯 수를 계산
+   - `normalizedMin = max(0, active_count.min)`
+   - `normalizedMax = max(normalizedMin, active_count.max)`
+   - `targetActive = random[min..max]` (단, 전체 슬롯 수보다 크면 전체 슬롯 수로 절삭)
+5. 슬롯 후보를 셔플한 뒤 앞에서 `targetActive`개는 `block_state`로 치환
+6. 나머지 슬롯은 `slot_randomization.remove_state`로 치환
+7. 치환이 끝난 월드 상태로 라운드 시작
+
+치환 시드 동작:
+
+- 구조물 배치용 시드: `mapSeed(nowTick, templateId, slot_randomization.seed_salt)`
+- 슬롯 셔플/활성개수 시드: 위 시드에 고정 XOR 상수 추가한 별도 시드
+- 따라서 같은 설정이어도 라운드 시점(`nowTick`)이 다르면 결과 배치가 달라질 수 있음
+
+플레이어 위장 블록 배정과의 관계:
+
+- 슬롯 치환과 별개로, 블록팀 플레이어 개인 위장 블록은 같은 후보 목록(`ResolvedDisguiseBlock`)에서 가중치 랜덤으로 뽑음
+- 후보가 비었을 때만 `fallbackDisguiseBlockStates`(기본 위장 블록 리스트)에서 무작위 선택
+- 즉, 맵 슬롯 배치와 플레이어 개인 위장은 같은 후보군을 공유하지만 1:1 매칭되지는 않음
+
 ### 5) `hide_seek_stats.json` (통계 저장)
 
 자동 생성/자동 저장 파일.
