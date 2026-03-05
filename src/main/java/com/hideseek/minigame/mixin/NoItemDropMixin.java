@@ -19,6 +19,9 @@ public abstract class NoItemDropMixin {
 
     @Inject(method = "onPlayerAction", at = @At("HEAD"), cancellable = true)
     private void blockDropActions(PlayerActionC2SPacket packet, CallbackInfo ci) {
+        if (this.player.isCreative()) {
+            return;
+        }
         PlayerActionC2SPacket.Action action = packet.getAction();
         if (action == PlayerActionC2SPacket.Action.DROP_ITEM || action == PlayerActionC2SPacket.Action.DROP_ALL_ITEMS) {
             ci.cancel();
@@ -28,6 +31,9 @@ public abstract class NoItemDropMixin {
 
     @Inject(method = "onClickSlot", at = @At("HEAD"), cancellable = true)
     private void blockInventoryThrow(ClickSlotC2SPacket packet, CallbackInfo ci) {
+        if (this.player.isCreative()) {
+            return;
+        }
         if (packet.actionType() == SlotActionType.THROW) {
             ci.cancel();
             this.syncInventory();

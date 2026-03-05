@@ -1,8 +1,8 @@
 package com.hideseek.minigame.orchestration;
 
 import com.hideseek.minigame.HideSeekService;
-import com.hideseek.minigame.job.BlockJob;
-import com.hideseek.minigame.job.SeekerJob;
+import com.hideseek.minigame.job.HideSeekJobs.BlockJob;
+import com.hideseek.minigame.job.HideSeekJobs.SeekerJob;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 

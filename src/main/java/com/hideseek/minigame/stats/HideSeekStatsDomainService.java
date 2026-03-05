@@ -16,24 +16,24 @@ public final class HideSeekStatsDomainService {
 
     private final Path statsPath;
     private final Logger logger;
-    private StatsState statsState;
+    private HideSeekStatsModels.StatsState statsState;
     private boolean statsDirty;
     private long lastStatsSaveTick;
 
     public HideSeekStatsDomainService(Path statsPath, Logger logger) {
         this.statsPath = statsPath;
         this.logger = logger;
-        this.statsState = StatsState.empty();
+        this.statsState = HideSeekStatsModels.StatsState.empty();
         this.statsDirty = false;
         this.lastStatsSaveTick = 0L;
     }
 
-    public StatsState state() {
+    public HideSeekStatsModels.StatsState state() {
         return this.statsState;
     }
 
-    public PlayerStats getOrCreatePlayerStats(UUID playerId) {
-        return this.statsState.players.computeIfAbsent(playerId.toString(), ignored -> new PlayerStats());
+    public HideSeekStatsModels.PlayerStats getOrCreatePlayerStats(UUID playerId) {
+        return this.statsState.players.computeIfAbsent(playerId.toString(), ignored -> new HideSeekStatsModels.PlayerStats());
     }
 
     public void markDirty() {
@@ -52,25 +52,25 @@ public final class HideSeekStatsDomainService {
     public void load() {
         try {
             if (Files.notExists(this.statsPath)) {
-                this.statsState = StatsState.empty();
+                this.statsState = HideSeekStatsModels.StatsState.empty();
                 this.save();
                 return;
             }
 
-            this.statsState = GSON.fromJson(Files.readString(this.statsPath), StatsState.class);
+            this.statsState = GSON.fromJson(Files.readString(this.statsPath), HideSeekStatsModels.StatsState.class);
             if (this.statsState == null) {
-                this.statsState = StatsState.empty();
+                this.statsState = HideSeekStatsModels.StatsState.empty();
             }
             if (this.statsState.players == null) {
                 this.statsState.players = new HashMap<>();
             }
             if (this.statsState.game == null) {
-                this.statsState.game = new GameStats();
+                this.statsState.game = new HideSeekStatsModels.GameStats();
             }
             this.statsDirty = false;
         } catch (Exception e) {
             this.logger.warn("[{}] 통계 로드 실패. 새 통계 사용", HideSeek.MOD_ID, e);
-            this.statsState = StatsState.empty();
+            this.statsState = HideSeekStatsModels.StatsState.empty();
             this.save();
         }
     }

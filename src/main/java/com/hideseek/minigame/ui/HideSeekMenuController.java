@@ -1,10 +1,9 @@
 package com.hideseek.minigame.ui;
 
 import com.hideseek.minigame.HideSeekService;
-import com.hideseek.minigame.job.BlockJob;
-import com.hideseek.minigame.job.SeekerJob;
-import com.hideseek.minigame.stats.GameStats;
-import com.hideseek.minigame.stats.PlayerStats;
+import com.hideseek.minigame.job.HideSeekJobs.BlockJob;
+import com.hideseek.minigame.job.HideSeekJobs.SeekerJob;
+import com.hideseek.minigame.stats.HideSeekStatsModels;
 import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
 import eu.pb4.sgui.api.gui.SimpleGui;
@@ -274,7 +273,7 @@ public final class HideSeekMenuController {
     }
 
     private List<Text> buildBlockStatsLore(ServerPlayerEntity player) {
-        PlayerStats stats = this.service.menuPlayerStats(player);
+        HideSeekStatsModels.PlayerStats stats = this.service.menuPlayerStats(player);
         List<Text> lore = new ArrayList<>();
         lore.add(this.renderGuiStat("stats_block_games", Long.toString(stats.blockGames)));
         lore.add(this.renderGuiStat("stats_block_winrate", this.service.menuFormatPercent(stats.blockWins, stats.blockGames)));
@@ -290,7 +289,7 @@ public final class HideSeekMenuController {
     }
 
     private List<Text> buildSeekerStatsLore(ServerPlayerEntity player) {
-        PlayerStats stats = this.service.menuPlayerStats(player);
+        HideSeekStatsModels.PlayerStats stats = this.service.menuPlayerStats(player);
         List<Text> lore = new ArrayList<>();
         lore.add(this.renderGuiStat("stats_seeker_games", Long.toString(stats.seekerGames)));
         lore.add(this.renderGuiStat("stats_seeker_winrate", this.service.menuFormatPercent(stats.seekerWins, stats.seekerGames)));
@@ -306,7 +305,7 @@ public final class HideSeekMenuController {
     }
 
     private List<Text> buildCommonStatsLore(ServerPlayerEntity player) {
-        PlayerStats stats = this.service.menuPlayerStats(player);
+        HideSeekStatsModels.PlayerStats stats = this.service.menuPlayerStats(player);
         List<Text> lore = new ArrayList<>();
         lore.add(this.renderGuiStat("stats_total_plays", Long.toString(stats.totalPlays)));
         lore.add(this.renderGuiStat("stats_kd", stats.kills + "/" + stats.deaths));
@@ -314,7 +313,7 @@ public final class HideSeekMenuController {
     }
 
     private List<Text> buildGameStatsLore() {
-        GameStats stats = this.service.menuGameStats();
+        HideSeekStatsModels.GameStats stats = this.service.menuGameStats();
         List<Text> lore = new ArrayList<>();
         lore.add(this.renderGuiStat("stats_avg_game_time", this.service.menuFormatAverageSeconds(stats.totalCombatTicks, stats.totalGames)));
         String winrate = this.service.menuFormatPercent(stats.seekerWins, stats.totalGames) + " / " + this.service.menuFormatPercent(stats.blockWins, stats.totalGames);

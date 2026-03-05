@@ -2,8 +2,8 @@ package com.hideseek.minigame.bootstrap;
 
 import com.hideseek.minigame.HideSeek;
 import com.hideseek.minigame.HideSeekService;
-import com.hideseek.minigame.job.BlockJob;
-import com.hideseek.minigame.job.SeekerJob;
+import com.hideseek.minigame.job.HideSeekJobs.BlockJob;
+import com.hideseek.minigame.job.HideSeekJobs.SeekerJob;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -111,18 +111,21 @@ public final class HideSeekV2CommandRegistrar {
                                             .then(CommandManager.literal("hunter")
                                                     .executes(context -> this.assignSeekerJob(context, SeekerJob.HUNTER, false))
                                                     .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                            .requires(Permissions.require(HideSeek.MOD_ID + ".command.job.others", 2))
                                                             .executes(context -> this.assignSeekerJob(context, SeekerJob.HUNTER, true))
                                                     )
                                             )
                                             .then(CommandManager.literal("bomber")
                                                     .executes(context -> this.assignSeekerJob(context, SeekerJob.BOMBER, false))
                                                     .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                            .requires(Permissions.require(HideSeek.MOD_ID + ".command.job.others", 2))
                                                             .executes(context -> this.assignSeekerJob(context, SeekerJob.BOMBER, true))
                                                     )
                                             )
                                             .then(CommandManager.literal("warden")
                                                     .executes(context -> this.assignSeekerJob(context, SeekerJob.WARDEN, false))
                                                     .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                            .requires(Permissions.require(HideSeek.MOD_ID + ".command.job.others", 2))
                                                             .executes(context -> this.assignSeekerJob(context, SeekerJob.WARDEN, true))
                                                     )
                                             )
@@ -131,18 +134,21 @@ public final class HideSeekV2CommandRegistrar {
                                             .then(CommandManager.literal("shapeshifter")
                                                     .executes(context -> this.assignBlockJob(context, BlockJob.SHAPESHIFTER, false))
                                                     .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                            .requires(Permissions.require(HideSeek.MOD_ID + ".command.job.others", 2))
                                                             .executes(context -> this.assignBlockJob(context, BlockJob.SHAPESHIFTER, true))
                                                     )
                                             )
                                             .then(CommandManager.literal("attention")
                                                     .executes(context -> this.assignBlockJob(context, BlockJob.ATTENTION_SEED, false))
                                                     .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                            .requires(Permissions.require(HideSeek.MOD_ID + ".command.job.others", 2))
                                                             .executes(context -> this.assignBlockJob(context, BlockJob.ATTENTION_SEED, true))
                                                     )
                                             )
                                             .then(CommandManager.literal("magician")
                                                     .executes(context -> this.assignBlockJob(context, BlockJob.MAGICIAN, false))
                                                     .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                            .requires(Permissions.require(HideSeek.MOD_ID + ".command.job.others", 2))
                                                             .executes(context -> this.assignBlockJob(context, BlockJob.MAGICIAN, true))
                                                     )
                                             )
@@ -191,6 +197,7 @@ public final class HideSeekV2CommandRegistrar {
                                                 return Command.SINGLE_SUCCESS;
                                             })
                                             .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                    .requires(Permissions.require(HideSeek.MOD_ID + ".command.prefer.others", 2))
                                                     .executes(context -> {
                                                         HideSeekService service = this.requireService(context.getSource());
                                                         if (service == null) {
@@ -219,6 +226,7 @@ public final class HideSeekV2CommandRegistrar {
                                                 return Command.SINGLE_SUCCESS;
                                             })
                                             .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                    .requires(Permissions.require(HideSeek.MOD_ID + ".command.prefer.others", 2))
                                                     .executes(context -> {
                                                         HideSeekService service = this.requireService(context.getSource());
                                                         if (service == null) {
@@ -247,6 +255,7 @@ public final class HideSeekV2CommandRegistrar {
                                                 return Command.SINGLE_SUCCESS;
                                             })
                                             .then(CommandManager.argument("targets", EntityArgumentType.players())
+                                                    .requires(Permissions.require(HideSeek.MOD_ID + ".command.prefer.others", 2))
                                                     .executes(context -> {
                                                         HideSeekService service = this.requireService(context.getSource());
                                                         if (service == null) {

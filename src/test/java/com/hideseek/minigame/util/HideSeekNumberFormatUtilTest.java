@@ -1,5 +1,7 @@
 package com.hideseek.minigame.util;
 
+import com.hideseek.minigame.util.HideSeekUtils.HideSeekNumberFormatUtil;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

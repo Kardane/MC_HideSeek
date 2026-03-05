@@ -13,9 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 public final class HideSeekConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -66,25 +64,6 @@ public final class HideSeekConfig {
     private final String slotRandomizationSeedSalt;
 
     private final List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks;
-    private final String messageInactive;
-    private final String messageCharging;
-    private final String messageActive;
-    private final String messageCooldown;
-    private final String messageFound;
-    private final String messageReload;
-    private final String messageRoundCountdown;
-    private final String messageHidePhaseStart;
-    private final String messageCombatPhaseStart;
-    private final String messageWinSeekers;
-    private final String messageWinBlocksElimination;
-    private final String messageWinBlocksTime;
-    private final String messageGameEnd;
-    private final String messageHideWarningSubtitle;
-    private final String messageGameWarningSubtitle;
-    private final String messageJobSet;
-    private final String messageJobSetTargets;
-    private final String messageJobInvalidTeam;
-    private final Map<String, String> guiTexts;
 
     private HideSeekConfig(
             int crouchTicks,
@@ -132,27 +111,7 @@ public final class HideSeekConfig {
             int slotRandomizationActiveCountMax,
             String slotRandomizationSeedSalt,
 
-            List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks,
-
-            String messageInactive,
-            String messageCharging,
-            String messageActive,
-            String messageCooldown,
-            String messageFound,
-            String messageReload,
-            String messageRoundCountdown,
-            String messageHidePhaseStart,
-            String messageCombatPhaseStart,
-            String messageWinSeekers,
-            String messageWinBlocksElimination,
-            String messageWinBlocksTime,
-            String messageGameEnd,
-            String messageHideWarningSubtitle,
-            String messageGameWarningSubtitle,
-            String messageJobSet,
-            String messageJobSetTargets,
-            String messageJobInvalidTeam,
-            Map<String, String> guiTexts
+            List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks
     ) {
         this.crouchTicks = crouchTicks;
         this.seekerRatio = seekerRatio;
@@ -199,25 +158,6 @@ public final class HideSeekConfig {
         this.slotRandomizationActiveCountMax = slotRandomizationActiveCountMax;
         this.slotRandomizationSeedSalt = slotRandomizationSeedSalt;
         this.defaultDisguiseBlocks = defaultDisguiseBlocks;
-        this.messageInactive = messageInactive;
-        this.messageCharging = messageCharging;
-        this.messageActive = messageActive;
-        this.messageCooldown = messageCooldown;
-        this.messageFound = messageFound;
-        this.messageReload = messageReload;
-        this.messageRoundCountdown = messageRoundCountdown;
-        this.messageHidePhaseStart = messageHidePhaseStart;
-        this.messageCombatPhaseStart = messageCombatPhaseStart;
-        this.messageWinSeekers = messageWinSeekers;
-        this.messageWinBlocksElimination = messageWinBlocksElimination;
-        this.messageWinBlocksTime = messageWinBlocksTime;
-        this.messageGameEnd = messageGameEnd;
-        this.messageHideWarningSubtitle = messageHideWarningSubtitle;
-        this.messageGameWarningSubtitle = messageGameWarningSubtitle;
-        this.messageJobSet = messageJobSet;
-        this.messageJobSetTargets = messageJobSetTargets;
-        this.messageJobInvalidTeam = messageJobInvalidTeam;
-        this.guiTexts = guiTexts;
     }
 
     public static HideSeekConfig defaults() {
@@ -270,27 +210,7 @@ public final class HideSeekConfig {
                 List.of(
                         new HideSeekDisguiseBlockConfig("minecraft:stone", "minecraft:yellow_concrete", 10.0D),
                         new HideSeekDisguiseBlockConfig("minecraft:cobblestone", "minecraft:orange_concrete", 5.0D)
-                ),
-
-                "[HideSeek] 위장 상태: 비활성",
-                "[HideSeek] 위장 준비: {progress}%",
-                "[HideSeek] 위장 상태: 활성화 ({block})",
-                "[HideSeek] 발각됨: {cooldown}초 후 다시 위장 가능",
-                "[HideSeek] {finder}님이 {target}님을 발견함!",
-                "[HideSeek] 설정 리로드 완료: {summary}",
-                "[HideSeek] {seconds}초 후 게임 시작",
-                "[HideSeek] 블록팀 숨는 시간 시작",
-                "[HideSeek] 술래 투입. 게임 시작",
-                "[HideSeek] 블록팀 전멸로 술래팀 승리",
-                "[HideSeek] 술래팀 전멸로 블록팀 승리",
-                "[HideSeek] 시간 종료로 블록팀 승리",
-                "[HideSeek] 게임 종료",
-                "숨는 시간 {seconds}초",
-                "게임 종료까지 {seconds}초",
-                "&7[&6!&7] {job} 직업으로 설정됨",
-                "&7[&6!&7] {count}명 직업 설정 완료: {job} (건너뜀 {skipped})",
-                "&c팀이 맞지 않아 직업 설정 불가: {player}",
-                defaultGuiTexts()
+                )
         );
     }
 
@@ -310,7 +230,6 @@ public final class HideSeekConfig {
             String raw = Files.readString(path);
             JsonObject json = JsonParser.parseString(raw).getAsJsonObject();
             HideSeekConfig defaults = defaults();
-            warnLegacyTextKeys(json, logger);
 
             int crouchTicks = json.has("crouch_ticks")
                     ? json.get("crouch_ticks").getAsInt()
@@ -498,27 +417,6 @@ public final class HideSeekConfig {
                     ? defaults.defaultDisguiseBlocks
                     : parsedDefaultDisguiseBlocks;
 
-            String messageInactive = defaults.messageInactive;
-            String messageCharging = defaults.messageCharging;
-            String messageActive = defaults.messageActive;
-            String messageCooldown = defaults.messageCooldown;
-            String messageFound = defaults.messageFound;
-            String messageReload = defaults.messageReload;
-            String messageRoundCountdown = defaults.messageRoundCountdown;
-            String messageHidePhaseStart = defaults.messageHidePhaseStart;
-            String messageCombatPhaseStart = defaults.messageCombatPhaseStart;
-            String messageWinSeekers = defaults.messageWinSeekers;
-            String messageWinBlocksElimination = defaults.messageWinBlocksElimination;
-            String messageWinBlocksTime = defaults.messageWinBlocksTime;
-            String messageGameEnd = defaults.messageGameEnd;
-            String messageHideWarningSubtitle = defaults.messageHideWarningSubtitle;
-            String messageGameWarningSubtitle = defaults.messageGameWarningSubtitle;
-            String messageJobSet = defaults.messageJobSet;
-            String messageJobSetTargets = defaults.messageJobSetTargets;
-            String messageJobInvalidTeam = defaults.messageJobInvalidTeam;
-
-            Map<String, String> guiTexts = defaults.guiTexts;
-
             HideSeekConfig config = sanitize(
                     crouchTicks,
                     seekerRatio,
@@ -565,26 +463,7 @@ public final class HideSeekConfig {
                     slotActiveMax,
                     slotSeedSalt,
 
-                    defaultDisguiseBlocks,
-                    messageInactive,
-                    messageCharging,
-                    messageActive,
-                    messageCooldown,
-                    messageFound,
-                    messageReload,
-                    messageRoundCountdown,
-                    messageHidePhaseStart,
-                    messageCombatPhaseStart,
-                    messageWinSeekers,
-                    messageWinBlocksElimination,
-                    messageWinBlocksTime,
-                    messageGameEnd,
-                    messageHideWarningSubtitle,
-                    messageGameWarningSubtitle,
-                    messageJobSet,
-                    messageJobSetTargets,
-                    messageJobInvalidTeam,
-                    guiTexts
+                    defaultDisguiseBlocks
             );
             return config;
         } catch (Exception e) {
@@ -817,26 +696,7 @@ public final class HideSeekConfig {
             int slotRandomizationActiveCountMax,
             String slotRandomizationSeedSalt,
 
-            List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks,
-            String messageInactive,
-            String messageCharging,
-            String messageActive,
-            String messageCooldown,
-            String messageFound,
-            String messageReload,
-            String messageRoundCountdown,
-            String messageHidePhaseStart,
-            String messageCombatPhaseStart,
-            String messageWinSeekers,
-            String messageWinBlocksElimination,
-            String messageWinBlocksTime,
-            String messageGameEnd,
-            String messageHideWarningSubtitle,
-            String messageGameWarningSubtitle,
-            String messageJobSet,
-            String messageJobSetTargets,
-            String messageJobInvalidTeam,
-            Map<String, String> guiTexts
+            List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks
     ) {
         HideSeekConfig defaults = defaults();
 
@@ -942,62 +802,6 @@ public final class HideSeekConfig {
 
         List<HideSeekDisguiseBlockConfig> safeDefaultDisguiseBlocks = HideSeekDisguiseBlockConfigCodec.sanitizeOrFallback(defaultDisguiseBlocks, defaults.defaultDisguiseBlocks);
 
-        String safeInactive = (messageInactive == null || messageInactive.isBlank())
-                ? defaults.messageInactive
-                : messageInactive;
-        String safeCharging = (messageCharging == null || messageCharging.isBlank())
-                ? defaults.messageCharging
-                : messageCharging;
-        String safeActive = (messageActive == null || messageActive.isBlank())
-                ? defaults.messageActive
-                : messageActive;
-        String safeCooldown = (messageCooldown == null || messageCooldown.isBlank())
-                ? defaults.messageCooldown
-                : messageCooldown;
-        String safeFound = (messageFound == null || messageFound.isBlank())
-                ? defaults.messageFound
-                : messageFound;
-        String safeReload = (messageReload == null || messageReload.isBlank())
-                ? defaults.messageReload
-                : messageReload;
-        String safeRoundCountdown = (messageRoundCountdown == null || messageRoundCountdown.isBlank())
-                ? defaults.messageRoundCountdown
-                : messageRoundCountdown;
-        String safeHidePhaseStart = (messageHidePhaseStart == null || messageHidePhaseStart.isBlank())
-                ? defaults.messageHidePhaseStart
-                : messageHidePhaseStart;
-        String safeCombatPhaseStart = (messageCombatPhaseStart == null || messageCombatPhaseStart.isBlank())
-                ? defaults.messageCombatPhaseStart
-                : messageCombatPhaseStart;
-        String safeWinSeekers = (messageWinSeekers == null || messageWinSeekers.isBlank())
-                ? defaults.messageWinSeekers
-                : messageWinSeekers;
-        String safeWinBlocksElimination = (messageWinBlocksElimination == null || messageWinBlocksElimination.isBlank())
-                ? defaults.messageWinBlocksElimination
-                : messageWinBlocksElimination;
-        String safeWinBlocksTime = (messageWinBlocksTime == null || messageWinBlocksTime.isBlank())
-                ? defaults.messageWinBlocksTime
-                : messageWinBlocksTime;
-        String safeGameEnd = (messageGameEnd == null || messageGameEnd.isBlank())
-                ? defaults.messageGameEnd
-                : messageGameEnd;
-        String safeHideWarningSubtitle = (messageHideWarningSubtitle == null || messageHideWarningSubtitle.isBlank())
-                ? defaults.messageHideWarningSubtitle
-                : messageHideWarningSubtitle;
-        String safeGameWarningSubtitle = (messageGameWarningSubtitle == null || messageGameWarningSubtitle.isBlank())
-                ? defaults.messageGameWarningSubtitle
-                : messageGameWarningSubtitle;
-        String safeJobSet = (messageJobSet == null || messageJobSet.isBlank())
-                ? defaults.messageJobSet
-                : messageJobSet;
-        String safeJobSetTargets = (messageJobSetTargets == null || messageJobSetTargets.isBlank())
-                ? defaults.messageJobSetTargets
-                : messageJobSetTargets;
-        String safeJobInvalidTeam = (messageJobInvalidTeam == null || messageJobInvalidTeam.isBlank())
-                ? defaults.messageJobInvalidTeam
-                : messageJobInvalidTeam;
-        Map<String, String> safeGuiTexts = sanitizeStringMap(guiTexts, defaults.guiTexts);
-
         return new HideSeekConfig(
                 safeTicks,
                 safeSeekerRatio,
@@ -1044,26 +848,7 @@ public final class HideSeekConfig {
                 safeSlotActiveMax,
                 safeSlotSeedSalt,
 
-                safeDefaultDisguiseBlocks,
-                safeInactive,
-                safeCharging,
-                safeActive,
-                safeCooldown,
-                safeFound,
-                safeReload,
-                safeRoundCountdown,
-                safeHidePhaseStart,
-                safeCombatPhaseStart,
-                safeWinSeekers,
-                safeWinBlocksElimination,
-                safeWinBlocksTime,
-                safeGameEnd,
-                safeHideWarningSubtitle,
-                safeGameWarningSubtitle,
-                safeJobSet,
-                safeJobSetTargets,
-                safeJobInvalidTeam,
-                safeGuiTexts
+                safeDefaultDisguiseBlocks
         );
     }
 
@@ -1180,36 +965,6 @@ public final class HideSeekConfig {
         return json.get(key).getAsString();
     }
 
-    private static void warnLegacyTextKeys(JsonObject json, Logger logger) {
-        String[] legacyKeys = {
-                "message_inactive",
-                "message_charging",
-                "message_active",
-                "message_cooldown",
-                "message_found",
-                "message_reload",
-                "message_round_countdown",
-                "message_hide_phase_start",
-                "message_combat_phase_start",
-                "message_win_seekers",
-                "message_win_blocks_elimination",
-                "message_win_blocks_time",
-                "message_game_end",
-                "message_hide_warning_subtitle",
-                "message_game_warning_subtitle",
-                "message_job_set",
-                "message_job_set_targets",
-                "message_job_invalid_team",
-                "gui_texts"
-        };
-        for (String legacyKey : legacyKeys) {
-            if (!json.has(legacyKey)) {
-                continue;
-            }
-            logger.warn("[{}] hide_seek.json의 {} 키는 더 이상 사용되지 않음. hide_seek_text.json으로 이동 필요", HideSeek.MOD_ID, legacyKey);
-        }
-    }
-
     private static int readInt(JsonObject json, String key, int fallback) {
         return json.has(key) ? json.get(key).getAsInt() : fallback;
     }
@@ -1228,103 +983,4 @@ public final class HideSeekConfig {
         return value;
     }
 
-    private static Map<String, String> readStringMap(JsonObject json, String key, Map<String, String> fallback) {
-        Map<String, String> out = new LinkedHashMap<>(fallback);
-        if (!json.has(key) || !json.get(key).isJsonObject()) {
-            return out;
-        }
-
-        JsonObject raw = json.getAsJsonObject(key);
-        for (Map.Entry<String, JsonElement> entry : raw.entrySet()) {
-            if (!entry.getValue().isJsonPrimitive()) {
-                continue;
-            }
-            out.put(entry.getKey(), entry.getValue().getAsString());
-        }
-        return out;
-    }
-
-    private static Map<String, String> sanitizeStringMap(Map<String, String> input, Map<String, String> fallback) {
-        Map<String, String> out = new LinkedHashMap<>(fallback);
-        if (input == null) {
-            return out;
-        }
-
-        for (Map.Entry<String, String> entry : input.entrySet()) {
-            if (entry.getKey() == null || entry.getKey().isBlank()) {
-                continue;
-            }
-            if (entry.getValue() == null || entry.getValue().isBlank()) {
-                continue;
-            }
-            out.put(entry.getKey(), entry.getValue());
-        }
-        return out;
-    }
-
-    private static Map<String, String> defaultGuiTexts() {
-        Map<String, String> map = new LinkedHashMap<>();
-        map.put("main_title", "&8메인 메뉴");
-        map.put("main_team_pref", "&a팀 선호");
-        map.put("main_team_pref_lore", "클릭: 팀 선호 메뉴 열기");
-        map.put("main_team_pref_op_hint", "OP 우클릭: 운영 메뉴 열기");
-        map.put("main_jobs", "&b직업 선택");
-        map.put("main_jobs_lore", "클릭: 직업 선택 메뉴 열기");
-        map.put("main_personal_stats", "&e개인 통계");
-        map.put("main_personal_stats_lore", "클릭: 내 통계 보기");
-        map.put("main_game_stats", "&6게임 통계");
-        map.put("main_game_stats_lore", "클릭: 전체 통계 보기");
-        map.put("main_op_menu", "&d운영 메뉴");
-        map.put("main_op_menu_lore", "클릭: OP 전용 기능 열기");
-        map.put("bossbar_hide", "&a숨는 시간 {seconds}초");
-        map.put("bossbar_game", "&c게임 시간 {seconds}초");
-        map.put("bossbar_end", "&f게임 종료 {seconds}초");
-        map.put("common_close", "&7닫기");
-        map.put("common_back", "&e뒤로");
-        map.put("team_title", "&8팀 선호 설정");
-        map.put("team_block", "&a블록팀 선호");
-        map.put("team_seeker", "&c술래팀 선호");
-        map.put("team_clear", "&e선호 초기화");
-        map.put("jobs_root_title", "&8직업 선택");
-        map.put("jobs_title", "&8직업 선택");
-        map.put("jobs_root_seeker", "&c술래 직업");
-        map.put("jobs_root_block", "&a블록 직업");
-        map.put("jobs_seeker_title", "&8술래 직업");
-        map.put("jobs_block_title", "&8블록 직업");
-        map.put("job_hunter", "&c사냥꾼");
-        map.put("job_bomber", "&c봄버");
-        map.put("job_warden", "&c워든");
-        map.put("job_shapeshifter", "&a형상변환자");
-        map.put("job_attention_seed", "&a관심종자");
-        map.put("job_magician", "&a마술사");
-        map.put("op_title", "&8OP 운영 메뉴");
-        map.put("op_start", "&a게임 시작");
-        map.put("op_end", "&c게임 종료");
-        map.put("op_randomize", "&6팀 선정");
-        map.put("stats_personal_title", "&8개인 통계");
-        map.put("stats_game_title", "&8게임 통계");
-        map.put("stats_personal_item", "&e내 통계 요약");
-        map.put("stats_personal_block_item", "&a블록팀 통계");
-        map.put("stats_personal_seeker_item", "&c술래팀 통계");
-        map.put("stats_personal_common_item", "&e공통 통계");
-        map.put("stats_game_item", "&6게임 통계 요약");
-        map.put("stats_total_plays", "총 플레이: {value}");
-        map.put("stats_block_games", "블록팀 플레이: {value}");
-        map.put("stats_seeker_games", "술래팀 플레이: {value}");
-        map.put("stats_block_winrate", "블록팀 승률: {value}");
-        map.put("stats_seeker_winrate", "술래팀 승률: {value}");
-        map.put("stats_job_winrates", "직업별 승률: {value}");
-        map.put("stats_block_job_winrates", "블록 직업 승률: {value}");
-        map.put("stats_seeker_job_winrates", "술래 직업 승률: {value}");
-        map.put("stats_kd", "킬/데스: {value}");
-        map.put("stats_disguise_count", "위장 횟수: {value}");
-        map.put("stats_undisguise_count", "위장 해제 횟수: {value}");
-        map.put("stats_block_survival", "블록팀 평균 생존시간: {value}");
-        map.put("stats_avg_game_time", "평균 게임 시간: {value}");
-        map.put("stats_game_winrate", "승률(술래/블록): {value}");
-        map.put("stats_avg_kills", "평균 킬 횟수: {value}");
-        map.put("stats_avg_reveals", "평균 발각횟수: {value}");
-        map.put("stats_total_games", "총 게임 횟수: {value}");
-        return map;
-    }
 }

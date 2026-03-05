@@ -2,7 +2,7 @@ package com.hideseek.minigame.orchestration;
 
 import com.hideseek.minigame.HideSeekService;
 import com.hideseek.minigame.domain.phase.GamePhase;
-import com.hideseek.minigame.domain.phase.GamePhaseTransition;
+import com.hideseek.minigame.domain.phase.GamePhaseEngine;
 
 public final class HideSeekPhaseFlowOrchestrationService {
     private final HideSeekService service;
@@ -18,7 +18,7 @@ public final class HideSeekPhaseFlowOrchestrationService {
             return;
         }
 
-        GamePhaseTransition transition = this.service.evaluatePhaseTransition(now);
+        GamePhaseEngine.GamePhaseTransition transition = this.service.evaluatePhaseTransition(now);
         switch (transition) {
             case COUNTDOWN_TIMEOUT -> this.service.handleCountdownTimeout(now);
             case HIDING_TIMEOUT -> this.service.handleHidingTimeout(now);
@@ -47,11 +47,4 @@ public final class HideSeekPhaseFlowOrchestrationService {
         }
     }
 
-    public void startRoundFlow() {
-        this.service.startRoundFlowInternal();
-    }
-
-    public void finishRoundState(boolean resetTickRate, boolean teleportToSpawn) {
-        this.service.finishRoundStateInternal(resetTickRate, teleportToSpawn);
-    }
 }
