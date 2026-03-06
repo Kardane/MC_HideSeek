@@ -40,6 +40,7 @@ public final class HideSeekConfig {
     private final int gameTicks;
     private final int seekerEntryInvulnerableTicks;
     private final int revealedBlockInvulnerableTicks;
+    private final double revealedProxySlimeScale;
     private final int seekerEndgameSpeedLevel;
     private final double seekerMaxHealth;
     private final String spawnWorldId;
@@ -91,6 +92,7 @@ public final class HideSeekConfig {
             int gameTicks,
             int seekerEntryInvulnerableTicks,
             int revealedBlockInvulnerableTicks,
+            double revealedProxySlimeScale,
             int seekerEndgameSpeedLevel,
             double seekerMaxHealth,
             String spawnWorldId,
@@ -141,6 +143,7 @@ public final class HideSeekConfig {
         this.gameTicks = gameTicks;
         this.seekerEntryInvulnerableTicks = seekerEntryInvulnerableTicks;
         this.revealedBlockInvulnerableTicks = revealedBlockInvulnerableTicks;
+        this.revealedProxySlimeScale = revealedProxySlimeScale;
         this.seekerEndgameSpeedLevel = seekerEndgameSpeedLevel;
         this.seekerMaxHealth = seekerMaxHealth;
         this.spawnWorldId = spawnWorldId;
@@ -193,6 +196,7 @@ public final class HideSeekConfig {
                 9600,
                 100,
                 20,
+                2.2D,
                 1,
                 40.0D,
                 "minecraft:overworld",
@@ -335,6 +339,9 @@ public final class HideSeekConfig {
             int revealedBlockInvulnerableTicks = json.has("revealed_block_invulnerable_ticks")
                     ? json.get("revealed_block_invulnerable_ticks").getAsInt()
                     : defaults.revealedBlockInvulnerableTicks;
+            double revealedProxySlimeScale = json.has("revealed_proxy_slime_scale")
+                    ? json.get("revealed_proxy_slime_scale").getAsDouble()
+                    : defaults.revealedProxySlimeScale;
             int seekerEndgameSpeedLevel = json.has("seeker_endgame_speed_level")
                     ? json.get("seeker_endgame_speed_level").getAsInt()
                     : defaults.seekerEndgameSpeedLevel;
@@ -462,6 +469,7 @@ public final class HideSeekConfig {
                     gameTicks,
                     seekerEntryInvulnerableTicks,
                     revealedBlockInvulnerableTicks,
+                    revealedProxySlimeScale,
                     seekerEndgameSpeedLevel,
                     seekerMaxHealth,
                     spawnWorldId,
@@ -592,6 +600,10 @@ public final class HideSeekConfig {
         return this.revealedBlockInvulnerableTicks;
     }
 
+    public double revealedProxySlimeScale() {
+        return this.revealedProxySlimeScale;
+    }
+
     public int seekerEndgameSpeedLevel() {
         return this.seekerEndgameSpeedLevel;
     }
@@ -711,6 +723,7 @@ public final class HideSeekConfig {
             int gameTicks,
             int seekerEntryInvulnerableTicks,
             int revealedBlockInvulnerableTicks,
+            double revealedProxySlimeScale,
             int seekerEndgameSpeedLevel,
             double seekerMaxHealth,
             String spawnWorldId,
@@ -808,6 +821,9 @@ public final class HideSeekConfig {
         int safeGameTicks = gameTicks < 1 ? 1 : gameTicks;
         int safeSeekerEntryInvulnerableTicks = Math.max(0, seekerEntryInvulnerableTicks);
         int safeRevealedBlockInvulnerableTicks = Math.max(0, revealedBlockInvulnerableTicks);
+        double safeRevealedProxySlimeScale = Double.isFinite(revealedProxySlimeScale)
+                ? clampDouble(revealedProxySlimeScale, 0.1D, 10.0D)
+                : defaults.revealedProxySlimeScale;
         int safeSeekerEndgameSpeedLevel = seekerEndgameSpeedLevel < 0 ? 0 : seekerEndgameSpeedLevel;
         double safeSeekerMaxHealth = Double.isFinite(seekerMaxHealth) ? Math.max(1.0D, seekerMaxHealth) : defaults.seekerMaxHealth;
 
@@ -872,6 +888,7 @@ public final class HideSeekConfig {
                 safeGameTicks,
                 safeSeekerEntryInvulnerableTicks,
                 safeRevealedBlockInvulnerableTicks,
+                safeRevealedProxySlimeScale,
                 safeSeekerEndgameSpeedLevel,
                 safeSeekerMaxHealth,
                 safeSpawnWorldId,
@@ -969,6 +986,7 @@ public final class HideSeekConfig {
         json.addProperty("game_ticks", this.gameTicks);
         json.addProperty("seeker_entry_invulnerable_ticks", this.seekerEntryInvulnerableTicks);
         json.addProperty("revealed_block_invulnerable_ticks", this.revealedBlockInvulnerableTicks);
+        json.addProperty("revealed_proxy_slime_scale", this.revealedProxySlimeScale);
         json.addProperty("seeker_endgame_speed_level", this.seekerEndgameSpeedLevel);
         json.addProperty("seeker_max_health", this.seekerMaxHealth);
         json.addProperty("spawn_world", this.spawnWorldId);
@@ -1027,6 +1045,16 @@ public final class HideSeekConfig {
     }
 
     private static int clampInt(int value, int min, int max) {
+        if (value < min) {
+            return min;
+        }
+        if (value > max) {
+            return max;
+        }
+        return value;
+    }
+
+    private static double clampDouble(double value, double min, double max) {
         if (value < min) {
             return min;
         }
