@@ -37,7 +37,11 @@ public final class HideSeekJobConfig {
     private final double wardenSearchRange;
 
     private final int shapeshifterCooldownTicks;
+    private final int shapeshifterStealthTicks;
+    private final int shapeshifterSpeedTicks;
+    private final int shapeshifterSpeedAmplifier;
     private final int attentionSeedCooldownTicks;
+    private final int attentionSeedOtherCooldownAddTicks;
     private final double attentionSeedTimeReducePercent;
     private final int magicianCooldownTicks;
     private final int magicianSpinTicks;
@@ -73,7 +77,11 @@ public final class HideSeekJobConfig {
             int wardenNoDisguiseTicks,
             double wardenSearchRange,
             int shapeshifterCooldownTicks,
+            int shapeshifterStealthTicks,
+            int shapeshifterSpeedTicks,
+            int shapeshifterSpeedAmplifier,
             int attentionSeedCooldownTicks,
+            int attentionSeedOtherCooldownAddTicks,
             double attentionSeedTimeReducePercent,
             int magicianCooldownTicks,
             int magicianSpinTicks,
@@ -107,7 +115,11 @@ public final class HideSeekJobConfig {
         this.wardenNoDisguiseTicks = wardenNoDisguiseTicks;
         this.wardenSearchRange = wardenSearchRange;
         this.shapeshifterCooldownTicks = shapeshifterCooldownTicks;
+        this.shapeshifterStealthTicks = shapeshifterStealthTicks;
+        this.shapeshifterSpeedTicks = shapeshifterSpeedTicks;
+        this.shapeshifterSpeedAmplifier = shapeshifterSpeedAmplifier;
         this.attentionSeedCooldownTicks = attentionSeedCooldownTicks;
+        this.attentionSeedOtherCooldownAddTicks = attentionSeedOtherCooldownAddTicks;
         this.attentionSeedTimeReducePercent = attentionSeedTimeReducePercent;
         this.magicianCooldownTicks = magicianCooldownTicks;
         this.magicianSpinTicks = magicianSpinTicks;
@@ -145,7 +157,11 @@ public final class HideSeekJobConfig {
                 60,
                 128.0D,
                 200,
+                30,
+                30,
+                1,
                 200,
+                60,
                 1.5D,
                 300,
                 20,
@@ -196,7 +212,11 @@ public final class HideSeekJobConfig {
                     readInt(json, "warden_no_disguise_ticks", defaults.wardenNoDisguiseTicks),
                     readDouble(json, "warden_search_range", defaults.wardenSearchRange),
                     readInt(json, "shapeshifter_cooldown_ticks", defaults.shapeshifterCooldownTicks),
+                    readInt(json, "shapeshifter_stealth_ticks", defaults.shapeshifterStealthTicks),
+                    readInt(json, "shapeshifter_speed_ticks", defaults.shapeshifterSpeedTicks),
+                    readInt(json, "shapeshifter_speed_amplifier", defaults.shapeshifterSpeedAmplifier),
                     readInt(json, "attention_seed_cooldown_ticks", defaults.attentionSeedCooldownTicks),
+                    readInt(json, "attention_seed_other_cooldown_add_ticks", defaults.attentionSeedOtherCooldownAddTicks),
                     readAttentionSeedReducePercent(json, defaults.attentionSeedTimeReducePercent),
                     readInt(json, "magician_cooldown_ticks", defaults.magicianCooldownTicks),
                     readInt(json, "magician_spin_ticks", defaults.magicianSpinTicks),
@@ -214,6 +234,7 @@ public final class HideSeekJobConfig {
                     readString(json, "magician_item_name", defaults.magicianItemName),
                     readStringList(json, "magician_item_lore", defaults.magicianItemLore)
             );
+            loaded.save(path);
             return loaded;
         } catch (Exception e) {
             logger.error("[{}] 직업 설정 파일 로드 실패. 기본값 사용", HideSeek.MOD_ID, e);
@@ -244,7 +265,11 @@ public final class HideSeekJobConfig {
             int wardenNoDisguiseTicks,
             double wardenSearchRange,
             int shapeshifterCooldownTicks,
+            int shapeshifterStealthTicks,
+            int shapeshifterSpeedTicks,
+            int shapeshifterSpeedAmplifier,
             int attentionSeedCooldownTicks,
+            int attentionSeedOtherCooldownAddTicks,
             double attentionSeedTimeReducePercent,
             int magicianCooldownTicks,
             int magicianSpinTicks,
@@ -281,7 +306,11 @@ public final class HideSeekJobConfig {
         double safeWardenRange = Double.isFinite(wardenSearchRange) ? Math.max(0.0D, wardenSearchRange) : 128.0D;
 
         int safeShapeshifterCooldown = Math.max(1, shapeshifterCooldownTicks);
+        int safeShapeshifterStealthTicks = Math.max(0, shapeshifterStealthTicks);
+        int safeShapeshifterSpeedTicks = Math.max(0, shapeshifterSpeedTicks);
+        int safeShapeshifterSpeedAmplifier = Math.max(0, shapeshifterSpeedAmplifier);
         int safeAttentionCooldown = Math.max(1, attentionSeedCooldownTicks);
+        int safeAttentionOtherCooldownAddTicks = Math.max(0, attentionSeedOtherCooldownAddTicks);
         double safeAttentionReducePercent = Double.isFinite(attentionSeedTimeReducePercent)
                 ? Math.max(0.1D, Math.min(100.0D, attentionSeedTimeReducePercent))
                 : 1.5D;
@@ -319,7 +348,11 @@ public final class HideSeekJobConfig {
                 safeWardenNoDisguise,
                 safeWardenRange,
                 safeShapeshifterCooldown,
+                safeShapeshifterStealthTicks,
+                safeShapeshifterSpeedTicks,
+                safeShapeshifterSpeedAmplifier,
                 safeAttentionCooldown,
+                safeAttentionOtherCooldownAddTicks,
                 safeAttentionReducePercent,
                 safeMagicianCooldown,
                 safeMagicianSpin,
@@ -429,7 +462,11 @@ public final class HideSeekJobConfig {
         json.addProperty("warden_search_range", this.wardenSearchRange);
 
         json.addProperty("shapeshifter_cooldown_ticks", this.shapeshifterCooldownTicks);
+        json.addProperty("shapeshifter_stealth_ticks", this.shapeshifterStealthTicks);
+        json.addProperty("shapeshifter_speed_ticks", this.shapeshifterSpeedTicks);
+        json.addProperty("shapeshifter_speed_amplifier", this.shapeshifterSpeedAmplifier);
         json.addProperty("attention_seed_cooldown_ticks", this.attentionSeedCooldownTicks);
+        json.addProperty("attention_seed_other_cooldown_add_ticks", this.attentionSeedOtherCooldownAddTicks);
         json.addProperty("attention_seed_time_reduce_percent", this.attentionSeedTimeReducePercent);
         json.addProperty("magician_cooldown_ticks", this.magicianCooldownTicks);
         json.addProperty("magician_spin_ticks", this.magicianSpinTicks);
@@ -523,8 +560,24 @@ public final class HideSeekJobConfig {
         return this.shapeshifterCooldownTicks;
     }
 
+    public int shapeshifterStealthTicks() {
+        return this.shapeshifterStealthTicks;
+    }
+
+    public int shapeshifterSpeedTicks() {
+        return this.shapeshifterSpeedTicks;
+    }
+
+    public int shapeshifterSpeedAmplifier() {
+        return this.shapeshifterSpeedAmplifier;
+    }
+
     public int attentionSeedCooldownTicks() {
         return this.attentionSeedCooldownTicks;
+    }
+
+    public int attentionSeedOtherCooldownAddTicks() {
+        return this.attentionSeedOtherCooldownAddTicks;
     }
 
     public double attentionSeedTimeReducePercent() {

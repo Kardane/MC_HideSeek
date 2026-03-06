@@ -45,6 +45,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.TntEntity;
 import net.minecraft.entity.projectile.FireworkRocketEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.attribute.EntityAttributeInstance;
@@ -52,9 +53,11 @@ import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.boss.BossBar;
 import net.minecraft.entity.boss.ServerBossBar;
+import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.entity.decoration.InteractionEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.mob.SlimeEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -100,6 +103,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.UUID;
@@ -116,7 +120,7 @@ public final class HideSeekService {
     private static final Identifier HUNTER_BLOCK_REACH_MODIFIER_ID = Identifier.of(HideSeek.MOD_ID, "hunter_block_reach");
     private static final Identifier WARDEN_SPEED_MODIFIER_ID = Identifier.of(HideSeek.MOD_ID, "warden_speed_penalty");
     private static final Identifier WARDEN_CAST_SLOW_MODIFIER_ID = Identifier.of(HideSeek.MOD_ID, "warden_cast_slow");
-    private static final double DEFAULT_SEEKER_MAX_HEALTH = 20.0D;
+    private static final double DEFAULT_SEEKER_MAX_HEALTH = 40.0D;
     private static final double DEFAULT_MAX_HEALTH = 20.0D;
     private static final int REDISGUISE_COOLDOWN_TICKS = 100;
     private static final int DAMAGE_RECOVERY_INTERVAL_TICKS = 10;
@@ -152,6 +156,10 @@ public final class HideSeekService {
     private final Map<UUID, Text> assignedDisguiseNameByPlayer = new HashMap<>();
     private final Set<UUID> managedEndgameSpeedPlayers = new HashSet<>();
     private final HideSeekAudioController audioController;
+    private BossBar.Color lastPhaseBossBarColor;
+    private Text lastPhaseBossBarName;
+    private float lastPhaseBossBarPercent;
+    private boolean phaseBossBarVisible;
 
     private HideSeekConfig config;
     private HideSeekTextConfig textConfig;
@@ -170,12 +178,15 @@ public final class HideSeekService {
     private int healCooldownTicks;
     private double revealAttackDamage;
     private double revealAttackSpeed;
+    private double revealFailDamage;
     private String arenaWorldId;
     private double arenaX;
     private double arenaY;
     private double arenaZ;
     private int hideTicks;
     private int gameTicks;
+    private int seekerEntryInvulnerableTicks;
+    private int revealedBlockInvulnerableTicks;
     private int seekerEndgameSpeedLevel;
     private double seekerMaxHealth;
     private String spawnWorldId;
@@ -219,10 +230,14 @@ public final class HideSeekService {
     private final Map<UUID, Long> attentionSeedCooldownUntilTickByPlayer = new HashMap<>();
     private final Map<UUID, Long> magicianCooldownUntilTickByPlayer = new HashMap<>();
     private final Map<UUID, Long> magicianSpinUntilTickByPlayer = new HashMap<>();
+    private final Map<UUID, Long> seekerInvulnerableUntilTickByPlayer = new HashMap<>();
+    private final Map<UUID, Long> revealedBlockInvulnerableUntilTickByPlayer = new HashMap<>();
+    private final Map<UUID, UUID> revealedProxyOwnerByEntity = new HashMap<>();
     private final Map<UUID, BlockState> shapeshifterPreviousBlockByPlayer = new HashMap<>();
     private final Map<UUID, BomberTntTrack> bomberTntByEntity = new HashMap<>();
     private final Map<UUID, Long> lastInteractionJobAssignTickByPlayer = new HashMap<>();
     private final Map<UUID, UUID> lastInteractionJobEntityByPlayer = new HashMap<>();
+    private final Set<UUID> proxyDamageForwardingPlayerIds = new HashSet<>();
     private final HideSeekMenuController menuController;
     private final HideSeekResourcePackConfigurer resourcePackConfigurer;
     private final HideSeekPhaseFlowOrchestrationService roundFlowService;
@@ -254,6 +269,10 @@ public final class HideSeekService {
         this.phaseBossBar.setThickenFog(false);
         this.phaseBossBar.setDragonMusic(false);
         this.phaseBossBar.setVisible(false);
+        this.lastPhaseBossBarColor = null;
+        this.lastPhaseBossBarName = null;
+        this.lastPhaseBossBarPercent = -1.0F;
+        this.phaseBossBarVisible = false;
         this.config = HideSeekConfig.defaults();
         this.textConfig = HideSeekTextConfig.defaults();
         this.jobConfig = HideSeekJobConfig.defaults();
@@ -271,12 +290,15 @@ public final class HideSeekService {
         this.healCooldownTicks = 60;
         this.revealAttackDamage = 7.0D;
         this.revealAttackSpeed = 1.6D;
+        this.revealFailDamage = 1.0D;
         this.arenaWorldId = "minecraft:overworld";
         this.arenaX = 0.5D;
         this.arenaY = 64.0D;
         this.arenaZ = 0.5D;
         this.hideTicks = 600;
         this.gameTicks = 9600;
+        this.seekerEntryInvulnerableTicks = 100;
+        this.revealedBlockInvulnerableTicks = 20;
         this.seekerEndgameSpeedLevel = 1;
         this.seekerMaxHealth = DEFAULT_SEEKER_MAX_HEALTH;
         this.spawnWorldId = "minecraft:overworld";
@@ -343,12 +365,15 @@ public final class HideSeekService {
         this.healCooldownTicks = Math.max(1, this.config.healCooldownTicks());
         this.revealAttackDamage = this.config.revealAttackDamage();
         this.revealAttackSpeed = this.config.revealAttackSpeed();
+        this.revealFailDamage = Math.max(0.0D, this.config.revealFailDamage());
         this.arenaWorldId = this.config.arenaWorldId();
         this.arenaX = this.config.arenaX();
         this.arenaY = this.config.arenaY();
         this.arenaZ = this.config.arenaZ();
         this.hideTicks = Math.max(1, this.config.hideTicks());
         this.gameTicks = Math.max(1, this.config.gameTicks());
+        this.seekerEntryInvulnerableTicks = Math.max(0, this.config.seekerEntryInvulnerableTicks());
+        this.revealedBlockInvulnerableTicks = Math.max(0, this.config.revealedBlockInvulnerableTicks());
         this.seekerEndgameSpeedLevel = Math.max(0, this.config.seekerEndgameSpeedLevel());
         this.seekerMaxHealth = Math.max(1.0D, this.config.seekerMaxHealth());
         this.spawnWorldId = this.config.spawnWorldId();
@@ -372,7 +397,7 @@ public final class HideSeekService {
         this.server.getGameRules().get(GameRules.NATURAL_REGENERATION).set(false, this.server);
         this.phaseBossBar.clearPlayers();
         this.phaseBossBarPlayerIds.clear();
-        this.phaseBossBar.setVisible(false);
+        this.hidePhaseBossBar();
         this.clearManagedSeekerSpeedBoost();
         this.applyResourcePackPathConfig();
         this.loadStats();
@@ -421,7 +446,7 @@ public final class HideSeekService {
         UUID playerId = player.getUuid();
         PlayerTrack track = this.trackByPlayer.remove(playerId);
         if (track != null) {
-            this.clearDisguise(player, track, false);
+            this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
         }
         this.clearPlayerAbilityState(playerId);
         this.clearJobAttributeModifiers(player);
@@ -464,7 +489,10 @@ public final class HideSeekService {
         UUID playerId = player.getUuid();
         PlayerTrack track = this.trackByPlayer.remove(playerId);
         if (track != null) {
-            this.clearDisguise(player, track, false);
+            this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
+        }
+        if (HideSeekDecisionPolicies.isGameInProgress(this.gamePhase)) {
+            this.removePlayerFromCurrentRound(player, false);
         }
         this.assignedDisguiseBlockByPlayer.remove(playerId);
         this.assignedDisguiseNameByPlayer.remove(playerId);
@@ -509,7 +537,7 @@ public final class HideSeekService {
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
             PlayerTrack track = this.trackByPlayer.get(player.getUuid());
             if (track != null) {
-                this.clearDisguise(player, track, false);
+                this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
             }
             this.clearJobAttributeModifiers(player);
             if (this.isBlockTeamMember(player)) {
@@ -526,9 +554,10 @@ public final class HideSeekService {
         this.audioController.clearPendingResultSounds();
         this.clearAllAbilityCooldowns();
         this.clearAbilityTransientState();
+        this.clearAllRevealedProxyVisuals();
         this.phaseBossBar.clearPlayers();
         this.phaseBossBarPlayerIds.clear();
-        this.phaseBossBar.setVisible(false);
+        this.hidePhaseBossBar();
         this.saveStats();
     }
 
@@ -562,7 +591,7 @@ public final class HideSeekService {
             return false;
         }
 
-        this.clearDisguise(player, track, false);
+        this.clearDisguise(player, track, UndisguiseReason.MANUAL);
         this.updateHud(player, 0.0F, false, false);
         this.getOrCreatePlayerStats(player.getUuid()).undisguiseCount += 1;
         this.markStatsDirty();
@@ -581,8 +610,61 @@ public final class HideSeekService {
         return job != null && job.team() == JobTeam.SEEKER && this.gamePhase == GamePhase.HIDING;
     }
 
-    public boolean isPvpEnabledNow() {
-        return this.gamePhase != GamePhase.IDLE;
+    public boolean shouldAllowPlayerDamage(ServerPlayerEntity player, DamageSource source) {
+        if (player == null) {
+            return true;
+        }
+        if (this.gamePhase == GamePhase.IDLE || this.gamePhase == GamePhase.COUNTDOWN || this.gamePhase == GamePhase.HIDING) {
+            return false;
+        }
+        long now = this.server.getTicks();
+        UUID playerId = player.getUuid();
+        if (this.seekerInvulnerableUntilTickByPlayer.getOrDefault(playerId, 0L) > now) {
+            return false;
+        }
+        if (this.revealedBlockInvulnerableUntilTickByPlayer.getOrDefault(playerId, 0L) > now) {
+            return false;
+        }
+        if (this.proxyDamageForwardingPlayerIds.contains(playerId)) {
+            return true;
+        }
+
+        PlayerTrack track = this.trackByPlayer.get(playerId);
+        if (this.shouldUseRevealedProxyVisual(player, track) && this.isDirectCombatDamage(source)) {
+            return false;
+        }
+        return true;
+    }
+
+    public boolean isSeekerWaitingForCombatEntry(ServerPlayerEntity player) {
+        return player != null && this.gamePhase == GamePhase.HIDING && this.isSeekerTeamMember(player);
+    }
+
+    public boolean tryRedirectRevealedProxyDamage(LivingEntity entity, DamageSource source, float amount) {
+        if (!(entity instanceof SlimeEntity slime)) {
+            return false;
+        }
+
+        UUID ownerId = this.revealedProxyOwnerByEntity.get(slime.getUuid());
+        if (ownerId == null) {
+            return false;
+        }
+
+        ServerPlayerEntity owner = this.server.getPlayerManager().getPlayer(ownerId);
+        PlayerTrack track = this.trackByPlayer.get(ownerId);
+        if (owner == null || !this.shouldUseRevealedProxyVisual(owner, track)) {
+            this.discardRevealedProxyEntity(slime.getUuid());
+            return true;
+        }
+
+        ServerWorld world = (ServerWorld) owner.getWorld();
+        this.proxyDamageForwardingPlayerIds.add(ownerId);
+        try {
+            owner.damage(world, source, amount);
+        } finally {
+            this.proxyDamageForwardingPlayerIds.remove(ownerId);
+        }
+        return true;
     }
 
     public long currentTick() {
@@ -591,6 +673,169 @@ public final class HideSeekService {
 
     public PlayerJob currentJob(ServerPlayerEntity player) {
         return this.jobByPlayer.get(player.getUuid());
+    }
+
+    private boolean shouldUseRevealedProxyVisual(ServerPlayerEntity player, PlayerTrack track) {
+        if (player == null || track == null) {
+            return false;
+        }
+        if (track.disguised || !track.hasDisguisedThisRound) {
+            return false;
+        }
+        if (!HideSeekDecisionPolicies.isGameInProgress(this.gamePhase)) {
+            return false;
+        }
+        if (player.isRemoved() || !player.isAlive() || player.isSpectator()) {
+            return false;
+        }
+        return this.isBlockTeamMember(player);
+    }
+
+    private boolean isDirectCombatDamage(DamageSource source) {
+        if (source == null) {
+            return false;
+        }
+        if (source.getAttacker() instanceof LivingEntity) {
+            return true;
+        }
+        return source.getSource() instanceof ProjectileEntity;
+    }
+
+    private void ensureRevealedProxyVisual(ServerPlayerEntity player, PlayerTrack track) {
+        if (player == null || track == null) {
+            return;
+        }
+
+        ServerWorld world = (ServerWorld) player.getWorld();
+        SlimeEntity slime = this.resolveRevealedProxySlime(track, world);
+        if (slime == null) {
+            slime = new SlimeEntity(EntityType.SLIME, world);
+            slime.noClip = true;
+            slime.setSilent(true);
+            slime.setNoGravity(true);
+            slime.setPersistent();
+            slime.setAiDisabled(true);
+            slime.setInvisible(true);
+            slime.setSize(2, true);
+            slime.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+            world.spawnEntity(slime);
+            track.revealedSlimeProxyUuid = slime.getUuid();
+            this.revealedProxyOwnerByEntity.put(slime.getUuid(), player.getUuid());
+        }
+
+        DisplayEntity.BlockDisplayEntity display = this.resolveRevealedProxyDisplay(track, world);
+        if (display == null) {
+            display = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, world);
+            display.noClip = true;
+            display.setNoGravity(true);
+            display.setBlockState(this.assignedDisguiseBlockByPlayer.getOrDefault(player.getUuid(), this.disguiseBlockState));
+            display.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+            world.spawnEntity(display);
+            track.revealedBlockDisplayUuid = display.getUuid();
+        }
+    }
+
+    private void syncRevealedProxyVisual(ServerPlayerEntity player, PlayerTrack track) {
+        if (player == null || track == null) {
+            return;
+        }
+
+        SlimeEntity slime = this.resolveRevealedProxySlime(track, (ServerWorld) player.getWorld());
+        if (slime != null) {
+            slime.noClip = true;
+            slime.setNoGravity(true);
+            slime.setInvisible(true);
+            slime.setAiDisabled(true);
+            slime.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+            slime.setVelocity(Vec3d.ZERO);
+        }
+
+        DisplayEntity.BlockDisplayEntity display = this.resolveRevealedProxyDisplay(track, (ServerWorld) player.getWorld());
+        if (display != null) {
+            display.noClip = true;
+            display.setNoGravity(true);
+            display.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+            BlockState assignedBlock = this.assignedDisguiseBlockByPlayer.getOrDefault(player.getUuid(), this.disguiseBlockState);
+            if (!Objects.equals(display.getBlockState(), assignedBlock)) {
+                display.setBlockState(assignedBlock);
+            }
+        }
+
+        player.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, 5, 0, false, false, false));
+    }
+
+    private void clearRevealedProxyVisual(ServerPlayerEntity player, PlayerTrack track) {
+        if (track == null) {
+            return;
+        }
+        this.discardRevealedProxyEntity(track.revealedBlockDisplayUuid);
+        this.discardRevealedProxyEntity(track.revealedSlimeProxyUuid);
+        track.revealedBlockDisplayUuid = null;
+        track.revealedSlimeProxyUuid = null;
+    }
+
+    private void clearAllRevealedProxyVisuals() {
+        for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
+            PlayerTrack track = this.trackByPlayer.get(player.getUuid());
+            if (track != null) {
+                this.clearRevealedProxyVisual(player, track);
+            }
+        }
+        for (UUID entityId : new HashSet<>(this.revealedProxyOwnerByEntity.keySet())) {
+            this.discardRevealedProxyEntity(entityId);
+        }
+        this.revealedProxyOwnerByEntity.clear();
+        this.proxyDamageForwardingPlayerIds.clear();
+    }
+
+    private void discardRevealedProxyEntity(UUID entityId) {
+        if (entityId == null) {
+            return;
+        }
+        Entity entity = this.findEntity(entityId);
+        if (entity != null) {
+            entity.discard();
+        }
+        this.revealedProxyOwnerByEntity.remove(entityId);
+    }
+
+    private Entity findEntity(UUID entityId) {
+        if (entityId == null) {
+            return null;
+        }
+        for (ServerWorld world : this.server.getWorlds()) {
+            Entity entity = world.getEntity(entityId);
+            if (entity != null) {
+                return entity;
+            }
+        }
+        return null;
+    }
+
+    private SlimeEntity resolveRevealedProxySlime(PlayerTrack track, ServerWorld world) {
+        if (track == null || track.revealedSlimeProxyUuid == null) {
+            return null;
+        }
+        Entity entity = world.getEntity(track.revealedSlimeProxyUuid);
+        if (entity instanceof SlimeEntity slime) {
+            return slime;
+        }
+        this.discardRevealedProxyEntity(track.revealedSlimeProxyUuid);
+        track.revealedSlimeProxyUuid = null;
+        return null;
+    }
+
+    private DisplayEntity.BlockDisplayEntity resolveRevealedProxyDisplay(PlayerTrack track, ServerWorld world) {
+        if (track == null || track.revealedBlockDisplayUuid == null) {
+            return null;
+        }
+        Entity entity = world.getEntity(track.revealedBlockDisplayUuid);
+        if (entity instanceof DisplayEntity.BlockDisplayEntity display) {
+            return display;
+        }
+        this.discardRevealedProxyEntity(track.revealedBlockDisplayUuid);
+        track.revealedBlockDisplayUuid = null;
+        return null;
     }
 
     private boolean isOnCooldown(Map<UUID, Long> cooldownMap, UUID playerId, long now) {
@@ -606,6 +851,13 @@ public final class HideSeekService {
             return;
         }
         player.getItemCooldownManager().set(usedStack, Math.max(1, cooldownTicks));
+    }
+
+    private void setAbilityItemCooldownByItem(ServerPlayerEntity player, Item item, int cooldownTicks) {
+        if (player == null || item == null) {
+            return;
+        }
+        this.setAbilityItemCooldown(player, new ItemStack(item), cooldownTicks);
     }
 
     private void applyAbilityCooldown(Map<UUID, Long> cooldownMap, ServerPlayerEntity player, ItemStack usedStack, long now, int cooldownTicks) {
@@ -1034,6 +1286,7 @@ public final class HideSeekService {
         return switch (resolution) {
             case MISS -> {
                 this.playRevealMissFeedback(clicker);
+                this.applyRevealFailDamage(clicker);
                 yield false;
             }
             case STALE_ENTRY -> {
@@ -1041,6 +1294,7 @@ public final class HideSeekService {
                     this.playerByDisguiseBlock.remove(clickedPos.toImmutable());
                 }
                 this.playRevealMissFeedback(clicker);
+                this.applyRevealFailDamage(clicker);
                 yield true;
             }
             case REVEAL -> {
@@ -1055,7 +1309,8 @@ public final class HideSeekService {
             return;
         }
 
-        this.clearDisguise(target, track, true);
+        this.clearDisguise(target, track, UndisguiseReason.REVEALED);
+        this.applyRevealProtection(target, this.server.getTicks());
         this.updateHud(target, 0.0F, false, false);
 
         if (this.gamePhase == GamePhase.COMBAT) {
@@ -1089,19 +1344,30 @@ public final class HideSeekService {
         }
     }
 
+    private void applyRevealProtection(ServerPlayerEntity player, long now) {
+        if (player == null) {
+            return;
+        }
+        if (this.revealedBlockInvulnerableTicks <= 0) {
+            this.revealedBlockInvulnerableUntilTickByPlayer.remove(player.getUuid());
+            return;
+        }
+        this.revealedBlockInvulnerableUntilTickByPlayer.put(player.getUuid(), now + this.revealedBlockInvulnerableTicks);
+    }
+
     private void tickPlayer(ServerPlayerEntity player) {
         UUID playerId = player.getUuid();
         PlayerTrack track = this.trackByPlayer.computeIfAbsent(playerId, ignored -> new PlayerTrack(player.getPos(), player.getHealth()));
 
         if (player.isRemoved() || !player.isAlive()) {
-            this.clearDisguise(player, track, false);
+            this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
             this.trackByPlayer.remove(playerId);
             this.updateHud(player, 0.0F, false, false);
             return;
         }
 
         if (player.isSpectator()) {
-            this.clearDisguise(player, track, false);
+            this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
             track.stationaryTicks = 0;
             track.lastChargeProgressSoundTick = 0L;
             track.lastPos = player.getPos();
@@ -1109,9 +1375,16 @@ public final class HideSeekService {
             return;
         }
 
+        if (this.shouldUseRevealedProxyVisual(player, track)) {
+            this.ensureRevealedProxyVisual(player, track);
+            this.syncRevealedProxyVisual(player, track);
+        } else {
+            this.clearRevealedProxyVisual(player, track);
+        }
+
         if (track.disguised) {
             if (!this.isBlockTeamMember(player)) {
-                this.clearDisguise(player, track, false);
+                this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
                 this.clearDisguiseHud(player);
                 return;
             }
@@ -1119,7 +1392,7 @@ public final class HideSeekService {
             if (track.anchorPos != null) {
                 BlockPos supportPos = BlockPos.ofFloored(track.anchorPos).down();
                 if (player.getWorld().getBlockState(supportPos).isAir()) {
-                    this.clearDisguise(player, track, false);
+                    this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
                     this.updateHud(player, 0.0F, false, false);
                     return;
                 }
@@ -1224,6 +1497,7 @@ public final class HideSeekService {
         player.requestTeleport(seatPos.x, seatPos.y, seatPos.z);
         player.setVelocity(Vec3d.ZERO);
 
+        this.clearRevealedProxyVisual(player, track);
         this.placeDisguiseBlock(player, track);
         this.attachSeat(player, track);
 
@@ -1238,12 +1512,14 @@ public final class HideSeekService {
         disguise.disguiseAs(EntityType.ITEM_DISPLAY);
 
         track.disguised = true;
+        track.hasDisguisedThisRound = true;
         this.getOrCreatePlayerStats(player.getUuid()).disguiseCount += 1;
         this.markStatsDirty();
         this.playEffectSound(player, SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7F, 0.7F);
     }
 
-    private void clearDisguise(ServerPlayerEntity player, PlayerTrack track, boolean discovered) {
+    private void clearDisguise(ServerPlayerEntity player, PlayerTrack track, UndisguiseReason reason) {
+        this.clearRevealedProxyVisual(player, track);
         player.stopRiding();
         this.removeSeatEntity(player, track);
         this.restoreDisguiseBlock(player, track);
@@ -1257,11 +1533,9 @@ public final class HideSeekService {
             disguise.removeDisguise();
         }
 
-        if (discovered) {
+        if (reason == UndisguiseReason.REVEALED) {
             track.cooldownUntilTick = this.server.getTicks() + REDISGUISE_COOLDOWN_TICKS;
             player.addStatusEffect(new StatusEffectInstance(StatusEffects.GLOWING, GLOW_TICKS, 0, false, false, true));
-        } else {
-            //this.playEffectSound(player, SoundEvents.BLOCK_LEVER_CLICK, 0.7F, 1.2F);
         }
 
         track.disguised = false;
@@ -1480,6 +1754,29 @@ public final class HideSeekService {
         String teamName = currentTeam.getName();
         if (BLOCK_TEAM_NAME.equals(teamName) || SEEKER_TEAM_NAME.equals(teamName)) {
             scoreboard.clearTeam(scoreHolderName);
+        }
+    }
+
+    private void removePlayerFromCurrentRound(ServerPlayerEntity player, boolean spectatorMode) {
+        if (player == null) {
+            return;
+        }
+
+        UUID playerId = player.getUuid();
+        TeamPreference previousTeam = this.roundTeamByPlayer.remove(playerId);
+        this.roundParticipants.remove(playerId);
+        this.roundJobByPlayer.remove(playerId);
+        this.jobByPlayer.remove(playerId);
+        this.finishBlockSurvival(playerId, this.server.getTicks());
+        this.removeFromHideSeekTeams(this.server.getScoreboard(), player.getNameForScoreboard());
+
+        if (spectatorMode) {
+            player.changeGameMode(GameMode.SPECTATOR);
+            this.clearDisguiseHud(player);
+        }
+
+        if (previousTeam != null) {
+            this.markStatsDirty();
         }
     }
 
@@ -1738,8 +2035,8 @@ public final class HideSeekService {
 
     private void resetPlayerRoundState(ServerPlayerEntity player) {
         PlayerTrack track = this.trackByPlayer.get(player.getUuid());
-        if (track != null && track.disguised) {
-            this.clearDisguise(player, track, false);
+        if (track != null) {
+            this.clearDisguise(player, track, UndisguiseReason.INTERNAL);
         }
 
         this.clearPlayerAbilityState(player.getUuid());
@@ -1754,6 +2051,10 @@ public final class HideSeekService {
             track.stationaryTicks = 0;
             track.cooldownUntilTick = 0L;
             track.lastPos = player.getPos();
+            track.anchorPos = null;
+            track.revealedSlimeProxyUuid = null;
+            track.revealedBlockDisplayUuid = null;
+            track.hasDisguisedThisRound = false;
             track.lastObservedHealth = player.getHealth();
             track.lastDamageTick = 0L;
             track.lastManualHealTick = 0L;
@@ -1984,6 +2285,7 @@ public final class HideSeekService {
             Vec3d origin = this.resolveAbilityParticleOrigin(player);
             serverWorld.spawnParticles(ParticleTypes.ITEM_SLIME, origin.x, origin.y, origin.z, 18, 0.3D, 0.4D, 0.3D, 0.0D);
         }
+        this.applyShapeshifterAbilityBuffs(player);
         this.playEffectSound(player, SoundEvents.ENTITY_SLIME_SQUISH, 1.0F, 1.0F);
 
         int cooldownTicks = this.jobConfig.shapeshifterCooldownTicks();
@@ -2013,7 +2315,58 @@ public final class HideSeekService {
 
         int cooldownTicks = this.jobConfig.attentionSeedCooldownTicks();
         this.applyAbilityCooldown(this.attentionSeedCooldownUntilTickByPlayer, player, usedStack, now, cooldownTicks);
+        this.applyAttentionSeedPenaltyToOtherPlayers(player.getUuid(), now);
         return true;
+    }
+
+    private void applyAttentionSeedPenaltyToOtherPlayers(UUID casterId, long now) {
+        int extraCooldownTicks = this.jobConfig.attentionSeedOtherCooldownAddTicks();
+        if (extraCooldownTicks <= 0) {
+            return;
+        }
+
+        for (ServerPlayerEntity target : this.server.getPlayerManager().getPlayerList()) {
+            if (target.isSpectator() || !target.isAlive()) {
+                continue;
+            }
+            UUID targetId = target.getUuid();
+            if (targetId.equals(casterId) || !this.isBlockTeamMember(target) || !this.hasJobType(target, PlayerJobType.ATTENTION_SEED)) {
+                continue;
+            }
+
+            long baseUntil = Math.max(now, this.attentionSeedCooldownUntilTickByPlayer.getOrDefault(targetId, 0L));
+            long nextUntil = baseUntil + extraCooldownTicks;
+            this.attentionSeedCooldownUntilTickByPlayer.put(targetId, nextUntil);
+            this.setAbilityItemCooldownByItem(target, Items.FIREWORK_ROCKET, (int) Math.max(1L, nextUntil - now));
+        }
+    }
+
+    private void applyShapeshifterAbilityBuffs(ServerPlayerEntity player) {
+        int stealthTicks = this.jobConfig.shapeshifterStealthTicks();
+        if (stealthTicks > 0) {
+            player.addStatusEffect(new StatusEffectInstance(StatusEffects.INVISIBILITY, stealthTicks, 0, false, false, true));
+        }
+
+        int speedTicks = this.jobConfig.shapeshifterSpeedTicks();
+        if (speedTicks > 0) {
+            player.addStatusEffect(new StatusEffectInstance(
+                    StatusEffects.SPEED,
+                    speedTicks,
+                    this.jobConfig.shapeshifterSpeedAmplifier(),
+                    false,
+                    false,
+                    true
+            ));
+        }
+    }
+
+    private void applyRevealFailDamage(ServerPlayerEntity player) {
+        if (player == null || this.revealFailDamage <= 0.0D || !player.isAlive()) {
+            return;
+        }
+        if (player.getWorld() instanceof ServerWorld serverWorld) {
+            player.damage(serverWorld, player.getDamageSources().generic(), (float) this.revealFailDamage);
+        }
     }
 
     private void launchAttentionSeedFirework(ServerPlayerEntity player) {
@@ -2186,6 +2539,8 @@ public final class HideSeekService {
         this.attentionSeedCooldownUntilTickByPlayer.remove(playerId);
         this.magicianCooldownUntilTickByPlayer.remove(playerId);
         this.magicianSpinUntilTickByPlayer.remove(playerId);
+        this.seekerInvulnerableUntilTickByPlayer.remove(playerId);
+        this.revealedBlockInvulnerableUntilTickByPlayer.remove(playerId);
         this.shapeshifterPreviousBlockByPlayer.remove(playerId);
         this.lastInteractionJobAssignTickByPlayer.remove(playerId);
         this.lastInteractionJobEntityByPlayer.remove(playerId);
@@ -2198,6 +2553,8 @@ public final class HideSeekService {
         this.shapeshifterCooldownUntilTickByPlayer.clear();
         this.attentionSeedCooldownUntilTickByPlayer.clear();
         this.magicianCooldownUntilTickByPlayer.clear();
+        this.seekerInvulnerableUntilTickByPlayer.clear();
+        this.revealedBlockInvulnerableUntilTickByPlayer.clear();
     }
 
     private void clearWardenPendingRevealState() {
@@ -2208,6 +2565,9 @@ public final class HideSeekService {
 
     private void clearAbilityTransientState() {
         this.magicianSpinUntilTickByPlayer.clear();
+        this.seekerInvulnerableUntilTickByPlayer.clear();
+        this.revealedBlockInvulnerableUntilTickByPlayer.clear();
+        this.proxyDamageForwardingPlayerIds.clear();
         this.clearBomberTntEntities();
     }
 
@@ -2428,6 +2788,12 @@ public final class HideSeekService {
     }
 
     public void startRoundFlowInternal() {
+        this.clearAllRevealedProxyVisuals();
+        for (PlayerTrack track : this.trackByPlayer.values()) {
+            track.hasDisguisedThisRound = false;
+            track.revealedSlimeProxyUuid = null;
+            track.revealedBlockDisplayUuid = null;
+        }
         this.prepareMapForRound();
         this.assignedDisguiseBlockByPlayer.clear();
         this.assignedDisguiseNameByPlayer.clear();
@@ -2447,7 +2813,7 @@ public final class HideSeekService {
         this.gamePhase = GamePhase.COUNTDOWN;
         this.phaseEndTick = this.server.getTicks() + PREPARE_COUNTDOWN_TICKS;
         this.setTickRate(20);
-        this.phaseBossBar.setVisible(false);
+        this.hidePhaseBossBar();
         this.broadcastTemplate(this.textMessage("round_countdown"), PREPARE_COUNTDOWN_TICKS / 20);
         this.lastCountdownNoticeSecond = PREPARE_COUNTDOWN_TICKS / 20;
     }
@@ -2619,6 +2985,7 @@ public final class HideSeekService {
 
         this.gamePhase = GamePhase.IDLE;
         this.phaseEndTick = 0L;
+        this.clearAllRevealedProxyVisuals();
         this.assignedDisguiseBlockByPlayer.clear();
         this.assignedDisguiseNameByPlayer.clear();
         this.clearManagedSeekerSpeedBoost();
@@ -2634,7 +3001,7 @@ public final class HideSeekService {
             this.clearJobAttributeModifiers(player);
         }
         this.clearRoundStatsContext();
-        this.phaseBossBar.setVisible(false);
+        this.hidePhaseBossBar();
 
         if (wasGameInProgress) {
             Scoreboard scoreboard = this.server.getScoreboard();
@@ -2659,7 +3026,7 @@ public final class HideSeekService {
     }
 
     public void handleIdlePhaseTick() {
-        this.phaseBossBar.setVisible(false);
+        this.hidePhaseBossBar();
         this.clearManagedSeekerSpeedBoost();
     }
 
@@ -2729,17 +3096,40 @@ public final class HideSeekService {
             this.updateBossBarWithTimer(this.textConfig.guiText("bossbar_end"), this.phaseEndTick - now, WIN_SEQUENCE_TICKS, BossBar.Color.WHITE);
             return;
         }
-        this.phaseBossBar.setVisible(false);
+        this.hidePhaseBossBar();
     }
 
     private void updateBossBarWithTimer(String template, long remainingTicks, int totalTicks, BossBar.Color color) {
         int secondsLeft = GamePhaseEngine.HideSeekPhaseTimerPolicy.bossBarSecondsLeft(remainingTicks);
         float progress = GamePhaseEngine.HideSeekPhaseTimerPolicy.bossBarProgress(remainingTicks, totalTicks);
+        Text nextName = this.renderMessage(template, 0, secondsLeft, "", "");
 
-        this.phaseBossBar.setColor(color);
-        this.phaseBossBar.setName(this.renderMessage(template, 0, secondsLeft, "", ""));
-        this.phaseBossBar.setPercent(progress);
-        this.phaseBossBar.setVisible(true);
+        if (this.lastPhaseBossBarColor != color) {
+            this.phaseBossBar.setColor(color);
+            this.lastPhaseBossBarColor = color;
+        }
+        if (!Objects.equals(this.lastPhaseBossBarName, nextName)) {
+            this.phaseBossBar.setName(nextName);
+            this.lastPhaseBossBarName = nextName;
+        }
+        if (Math.abs(this.lastPhaseBossBarPercent - progress) > 0.0001F) {
+            this.phaseBossBar.setPercent(progress);
+            this.lastPhaseBossBarPercent = progress;
+        }
+        if (!this.phaseBossBarVisible) {
+            this.phaseBossBar.setVisible(true);
+            this.phaseBossBarVisible = true;
+        }
+    }
+
+    private void hidePhaseBossBar() {
+        if (this.phaseBossBarVisible) {
+            this.phaseBossBar.setVisible(false);
+        }
+        this.lastPhaseBossBarColor = null;
+        this.lastPhaseBossBarName = null;
+        this.lastPhaseBossBarPercent = -1.0F;
+        this.phaseBossBarVisible = false;
     }
 
     private void runPhaseAlerts(long now) {
@@ -2885,11 +3275,13 @@ public final class HideSeekService {
     private void onCombatPhaseStarted(long now) {
         this.combatStartTick = now;
         this.resetAllPlayerAbilityCooldowns();
+        this.trimSeekersToCombatLoadout();
 
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
             if (!player.isAlive() || player.isSpectator() || !this.isSeekerTeamMember(player)) {
                 continue;
             }
+            this.applySeekerEntryInvulnerability(player, now);
             this.playSeekerTeamEntrySound(player);
         }
 
@@ -2908,6 +3300,46 @@ public final class HideSeekService {
         }
 
         this.markStatsDirty();
+    }
+
+    private void trimSeekersToCombatLoadout() {
+        for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
+            if (!player.isAlive() || player.isSpectator() || !this.isSeekerTeamMember(player)) {
+                continue;
+            }
+            this.prepareSeekerCombatLoadout(player);
+        }
+    }
+
+    private void prepareSeekerCombatLoadout(ServerPlayerEntity player) {
+        if (player == null) {
+            return;
+        }
+
+        for (int slot = 0; slot < 36; slot++) {
+            player.getInventory().setStack(slot, ItemStack.EMPTY);
+        }
+        player.getInventory().setStack(40, ItemStack.EMPTY);
+
+        player.getInventory().setStack(0, this.createConfiguredRevealItem());
+        Item seekerAbilityItem = HideSeekRoundItemSupport.resolveSeekerAbilityItem(this.jobByPlayer.get(player.getUuid()));
+        if (seekerAbilityItem != null) {
+            player.getInventory().setStack(1, this.createJobAbilityItem(seekerAbilityItem));
+        }
+
+        this.applySeekerRevealItemStats(player);
+        player.currentScreenHandler.syncState();
+    }
+
+    private void applySeekerEntryInvulnerability(ServerPlayerEntity player, long now) {
+        if (player == null) {
+            return;
+        }
+        if (this.seekerEntryInvulnerableTicks <= 0) {
+            this.seekerInvulnerableUntilTickByPlayer.remove(player.getUuid());
+            return;
+        }
+        this.seekerInvulnerableUntilTickByPlayer.put(player.getUuid(), now + this.seekerEntryInvulnerableTicks);
     }
 
     private void resetAllPlayerAbilityCooldowns() {
@@ -3414,6 +3846,12 @@ public final class HideSeekService {
         }
     }
 
+    private enum UndisguiseReason {
+        REVEALED,
+        MANUAL,
+        INTERNAL
+    }
+
     private static final class PlayerTrack {
         private Vec3d lastPos;
         private int stationaryTicks;
@@ -3421,7 +3859,10 @@ public final class HideSeekService {
         private BlockPos disguiseBlockPos;
         private BlockState previousBlockState;
         private UUID seatEntityUuid;
+        private UUID revealedSlimeProxyUuid;
+        private UUID revealedBlockDisplayUuid;
         private boolean disguised;
+        private boolean hasDisguisedThisRound;
         private boolean invisibilityApplied;
         private boolean hadInvisibilityBeforeDisguise;
         private long cooldownUntilTick;
@@ -3437,7 +3878,10 @@ public final class HideSeekService {
             this.disguiseBlockPos = null;
             this.previousBlockState = null;
             this.seatEntityUuid = null;
+            this.revealedSlimeProxyUuid = null;
+            this.revealedBlockDisplayUuid = null;
             this.disguised = false;
+            this.hasDisguisedThisRound = false;
             this.invisibilityApplied = false;
             this.hadInvisibilityBeforeDisguise = false;
             this.cooldownUntilTick = 0L;

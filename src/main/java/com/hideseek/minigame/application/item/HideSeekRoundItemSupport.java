@@ -60,7 +60,7 @@ public final class HideSeekRoundItemSupport {
         }
     }
 
-    private static Item resolveSeekerAbilityItem(PlayerJob job) {
+    public static Item resolveSeekerAbilityItem(PlayerJob job) {
         if (job == null) {
             return null;
         }
@@ -72,7 +72,7 @@ public final class HideSeekRoundItemSupport {
         };
     }
 
-    private static Item resolveBlockAbilityItem(PlayerJob job) {
+    public static Item resolveBlockAbilityItem(PlayerJob job) {
         if (job == null) {
             return null;
         }

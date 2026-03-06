@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.entity.projectile.FireworkRocketEntity;
 import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
@@ -54,18 +55,20 @@ public final class HideSeekV2EventRegistrar {
         });
 
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (source.getSource() instanceof FireworkRocketEntity) {
+                return false;
+            }
+            HideSeekService service = this.runtime.service();
+            if (service != null && service.tryRedirectRevealedProxyDamage(entity, source, amount)) {
+                return false;
+            }
             if (!(entity instanceof ServerPlayerEntity)) {
                 return true;
             }
             if (source.isOf(DamageTypes.IN_WALL)) {
                 return false;
             }
-
-            HideSeekService service = this.runtime.service();
-            if (service == null || service.isPvpEnabledNow()) {
-                return true;
-            }
-            return !(source.getAttacker() instanceof ServerPlayerEntity);
+            return service == null || service.shouldAllowPlayerDamage((ServerPlayerEntity) entity, source);
         });
 
         ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
@@ -82,6 +85,9 @@ public final class HideSeekV2EventRegistrar {
             if (service == null || world.isClient() || !(player instanceof ServerPlayerEntity serverPlayer)) {
                 return ActionResult.PASS;
             }
+            if (service.isSeekerWaitingForCombatEntry(serverPlayer) && !player.getStackInHand(hand).isEmpty()) {
+                return ActionResult.FAIL;
+            }
 
             if (service.tryUseJobAbilityWithItem(serverPlayer, player.getStackInHand(hand))) {
                 return ActionResult.SUCCESS;
@@ -96,6 +102,9 @@ public final class HideSeekV2EventRegistrar {
             HideSeekService service = this.runtime.service();
             if (service == null || world.isClient() || !(player instanceof ServerPlayerEntity serverPlayer)) {
                 return ActionResult.PASS;
+            }
+            if (service.isSeekerWaitingForCombatEntry(serverPlayer) && !player.getStackInHand(hand).isEmpty()) {
+                return ActionResult.FAIL;
             }
 
             if (service.tryUseJobAbilityWithItem(serverPlayer, player.getStackInHand(hand))) {
@@ -115,6 +124,9 @@ public final class HideSeekV2EventRegistrar {
             HideSeekService service = this.runtime.service();
             if (service == null || world.isClient() || !(player instanceof ServerPlayerEntity serverPlayer)) {
                 return ActionResult.PASS;
+            }
+            if (service.isSeekerWaitingForCombatEntry(serverPlayer) && !player.getStackInHand(hand).isEmpty()) {
+                return ActionResult.FAIL;
             }
             if (hand != Hand.MAIN_HAND || hitResult == null) {
                 return ActionResult.PASS;

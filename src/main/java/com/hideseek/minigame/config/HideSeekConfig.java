@@ -31,12 +31,15 @@ public final class HideSeekConfig {
     private final int healCooldownTicks;
     private final double revealAttackDamage;
     private final double revealAttackSpeed;
+    private final double revealFailDamage;
     private final String arenaWorldId;
     private final double arenaX;
     private final double arenaY;
     private final double arenaZ;
     private final int hideTicks;
     private final int gameTicks;
+    private final int seekerEntryInvulnerableTicks;
+    private final int revealedBlockInvulnerableTicks;
     private final int seekerEndgameSpeedLevel;
     private final double seekerMaxHealth;
     private final String spawnWorldId;
@@ -79,12 +82,15 @@ public final class HideSeekConfig {
             int healCooldownTicks,
             double revealAttackDamage,
             double revealAttackSpeed,
+            double revealFailDamage,
             String arenaWorldId,
             double arenaX,
             double arenaY,
             double arenaZ,
             int hideTicks,
             int gameTicks,
+            int seekerEntryInvulnerableTicks,
+            int revealedBlockInvulnerableTicks,
             int seekerEndgameSpeedLevel,
             double seekerMaxHealth,
             String spawnWorldId,
@@ -126,12 +132,15 @@ public final class HideSeekConfig {
         this.healCooldownTicks = healCooldownTicks;
         this.revealAttackDamage = revealAttackDamage;
         this.revealAttackSpeed = revealAttackSpeed;
+        this.revealFailDamage = revealFailDamage;
         this.arenaWorldId = arenaWorldId;
         this.arenaX = arenaX;
         this.arenaY = arenaY;
         this.arenaZ = arenaZ;
         this.hideTicks = hideTicks;
         this.gameTicks = gameTicks;
+        this.seekerEntryInvulnerableTicks = seekerEntryInvulnerableTicks;
+        this.revealedBlockInvulnerableTicks = revealedBlockInvulnerableTicks;
         this.seekerEndgameSpeedLevel = seekerEndgameSpeedLevel;
         this.seekerMaxHealth = seekerMaxHealth;
         this.spawnWorldId = spawnWorldId;
@@ -175,14 +184,17 @@ public final class HideSeekConfig {
                 60,
                 7.0D,
                 1.6D,
+                1.0D,
                 "minecraft:overworld",
                 0.5D,
                 64.0D,
                 0.5D,
                 600,
                 9600,
+                100,
+                20,
                 1,
-                20.0D,
+                40.0D,
                 "minecraft:overworld",
                 0.5D,
                 64.0D,
@@ -295,6 +307,10 @@ public final class HideSeekConfig {
                     ? json.get("reveal_attack_speed").getAsDouble()
                     : defaults.revealAttackSpeed;
 
+            double revealFailDamage = json.has("reveal_fail_damage")
+                    ? json.get("reveal_fail_damage").getAsDouble()
+                    : defaults.revealFailDamage;
+
             String arenaWorldId = json.has("arena_world")
                     ? json.get("arena_world").getAsString()
                     : defaults.arenaWorldId;
@@ -313,6 +329,12 @@ public final class HideSeekConfig {
             int gameTicks = json.has("game_ticks")
                     ? json.get("game_ticks").getAsInt()
                     : defaults.gameTicks;
+            int seekerEntryInvulnerableTicks = json.has("seeker_entry_invulnerable_ticks")
+                    ? json.get("seeker_entry_invulnerable_ticks").getAsInt()
+                    : defaults.seekerEntryInvulnerableTicks;
+            int revealedBlockInvulnerableTicks = json.has("revealed_block_invulnerable_ticks")
+                    ? json.get("revealed_block_invulnerable_ticks").getAsInt()
+                    : defaults.revealedBlockInvulnerableTicks;
             int seekerEndgameSpeedLevel = json.has("seeker_endgame_speed_level")
                     ? json.get("seeker_endgame_speed_level").getAsInt()
                     : defaults.seekerEndgameSpeedLevel;
@@ -431,12 +453,15 @@ public final class HideSeekConfig {
                     healCooldownTicks,
                     revealAttackDamage,
                     revealAttackSpeed,
+                    revealFailDamage,
                     arenaWorldId,
                     arenaX,
                     arenaY,
                     arenaZ,
                     hideTicks,
                     gameTicks,
+                    seekerEntryInvulnerableTicks,
+                    revealedBlockInvulnerableTicks,
                     seekerEndgameSpeedLevel,
                     seekerMaxHealth,
                     spawnWorldId,
@@ -465,6 +490,7 @@ public final class HideSeekConfig {
 
                     defaultDisguiseBlocks
             );
+            config.save(path);
             return config;
         } catch (Exception e) {
             logger.error("[{}] 설정 파일 로드 실패. 기본값 사용", HideSeek.MOD_ID, e);
@@ -530,6 +556,10 @@ public final class HideSeekConfig {
         return this.revealAttackSpeed;
     }
 
+    public double revealFailDamage() {
+        return this.revealFailDamage;
+    }
+
     public String arenaWorldId() {
         return this.arenaWorldId;
     }
@@ -552,6 +582,14 @@ public final class HideSeekConfig {
 
     public int gameTicks() {
         return this.gameTicks;
+    }
+
+    public int seekerEntryInvulnerableTicks() {
+        return this.seekerEntryInvulnerableTicks;
+    }
+
+    public int revealedBlockInvulnerableTicks() {
+        return this.revealedBlockInvulnerableTicks;
     }
 
     public int seekerEndgameSpeedLevel() {
@@ -664,12 +702,15 @@ public final class HideSeekConfig {
             int healCooldownTicks,
             double revealAttackDamage,
             double revealAttackSpeed,
+            double revealFailDamage,
             String arenaWorldId,
             double arenaX,
             double arenaY,
             double arenaZ,
             int hideTicks,
             int gameTicks,
+            int seekerEntryInvulnerableTicks,
+            int revealedBlockInvulnerableTicks,
             int seekerEndgameSpeedLevel,
             double seekerMaxHealth,
             String spawnWorldId,
@@ -753,6 +794,10 @@ public final class HideSeekConfig {
                 ? revealAttackSpeed
                 : defaults.revealAttackSpeed;
 
+        double safeRevealFailDamage = Double.isFinite(revealFailDamage)
+                ? Math.max(0.0D, revealFailDamage)
+                : defaults.revealFailDamage;
+
         String safeArenaWorldId = (arenaWorldId == null || arenaWorldId.isBlank())
                 ? defaults.arenaWorldId
                 : arenaWorldId.trim();
@@ -761,6 +806,8 @@ public final class HideSeekConfig {
         double safeArenaZ = Double.isFinite(arenaZ) ? arenaZ : defaults.arenaZ;
         int safeHideTicks = hideTicks < 1 ? 1 : hideTicks;
         int safeGameTicks = gameTicks < 1 ? 1 : gameTicks;
+        int safeSeekerEntryInvulnerableTicks = Math.max(0, seekerEntryInvulnerableTicks);
+        int safeRevealedBlockInvulnerableTicks = Math.max(0, revealedBlockInvulnerableTicks);
         int safeSeekerEndgameSpeedLevel = seekerEndgameSpeedLevel < 0 ? 0 : seekerEndgameSpeedLevel;
         double safeSeekerMaxHealth = Double.isFinite(seekerMaxHealth) ? Math.max(1.0D, seekerMaxHealth) : defaults.seekerMaxHealth;
 
@@ -816,12 +863,15 @@ public final class HideSeekConfig {
                 safeHealCooldownTicks,
                 safeRevealAttackDamage,
                 safeRevealAttackSpeed,
+                safeRevealFailDamage,
                 safeArenaWorldId,
                 safeArenaX,
                 safeArenaY,
                 safeArenaZ,
                 safeHideTicks,
                 safeGameTicks,
+                safeSeekerEntryInvulnerableTicks,
+                safeRevealedBlockInvulnerableTicks,
                 safeSeekerEndgameSpeedLevel,
                 safeSeekerMaxHealth,
                 safeSpawnWorldId,
@@ -910,12 +960,15 @@ public final class HideSeekConfig {
         json.addProperty("heal_cooldown_ticks", this.healCooldownTicks);
         json.addProperty("reveal_attack_damage", this.revealAttackDamage);
         json.addProperty("reveal_attack_speed", this.revealAttackSpeed);
+        json.addProperty("reveal_fail_damage", this.revealFailDamage);
         json.addProperty("arena_world", this.arenaWorldId);
         json.addProperty("arena_x", this.arenaX);
         json.addProperty("arena_y", this.arenaY);
         json.addProperty("arena_z", this.arenaZ);
         json.addProperty("hide_ticks", this.hideTicks);
         json.addProperty("game_ticks", this.gameTicks);
+        json.addProperty("seeker_entry_invulnerable_ticks", this.seekerEntryInvulnerableTicks);
+        json.addProperty("revealed_block_invulnerable_ticks", this.revealedBlockInvulnerableTicks);
         json.addProperty("seeker_endgame_speed_level", this.seekerEndgameSpeedLevel);
         json.addProperty("seeker_max_health", this.seekerMaxHealth);
         json.addProperty("spawn_world", this.spawnWorldId);
