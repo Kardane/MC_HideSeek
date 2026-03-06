@@ -707,6 +707,12 @@ public final class HideSeekService {
         }
 
         ServerWorld world = (ServerWorld) player.getWorld();
+        Vec3d displayPos = this.centerOnBlock(player.getPos());
+        EntityDisguise disguise = (EntityDisguise) player;
+        if (!track.disguised && !disguise.isDisguised()) {
+            disguise.disguiseAs(EntityType.SLIME);
+        }
+
         SlimeEntity slime = this.resolveRevealedProxySlime(track, world);
         if (slime == null) {
             slime = new SlimeEntity(EntityType.SLIME, world);
@@ -728,8 +734,9 @@ public final class HideSeekService {
             display = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, world);
             display.noClip = true;
             display.setNoGravity(true);
+            display.setBillboardMode(DisplayEntity.BillboardMode.FIXED);
             display.setBlockState(this.assignedDisguiseBlockByPlayer.getOrDefault(player.getUuid(), this.disguiseBlockState));
-            display.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+            display.refreshPositionAndAngles(displayPos.x, displayPos.y, displayPos.z, 0.0F, 0.0F);
             world.spawnEntity(display);
             track.revealedBlockDisplayUuid = display.getUuid();
         }
@@ -740,6 +747,7 @@ public final class HideSeekService {
             return;
         }
 
+        Vec3d displayPos = this.centerOnBlock(player.getPos());
         SlimeEntity slime = this.resolveRevealedProxySlime(track, (ServerWorld) player.getWorld());
         if (slime != null) {
             slime.noClip = true;
@@ -754,7 +762,8 @@ public final class HideSeekService {
         if (display != null) {
             display.noClip = true;
             display.setNoGravity(true);
-            display.refreshPositionAndAngles(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch());
+            display.setBillboardMode(DisplayEntity.BillboardMode.FIXED);
+            display.refreshPositionAndAngles(displayPos.x, displayPos.y, displayPos.z, 0.0F, 0.0F);
             BlockState assignedBlock = this.assignedDisguiseBlockByPlayer.getOrDefault(player.getUuid(), this.disguiseBlockState);
             if (!Objects.equals(display.getBlockState(), assignedBlock)) {
                 display.setBlockState(assignedBlock);
@@ -767,6 +776,12 @@ public final class HideSeekService {
     private void clearRevealedProxyVisual(ServerPlayerEntity player, PlayerTrack track) {
         if (track == null) {
             return;
+        }
+        if (player != null && !track.disguised) {
+            EntityDisguise disguise = (EntityDisguise) player;
+            if (disguise.isDisguised()) {
+                disguise.removeDisguise();
+            }
         }
         this.discardRevealedProxyEntity(track.revealedBlockDisplayUuid);
         this.discardRevealedProxyEntity(track.revealedSlimeProxyUuid);
