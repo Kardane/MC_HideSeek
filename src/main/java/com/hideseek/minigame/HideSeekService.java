@@ -3150,9 +3150,10 @@ public final class HideSeekService {
             return;
         }
 
-        ServerWorld world = HideSeekMapRuntimeSupport.resolveWorld(this.server, this.arenaWorldId);
+        String worldId = this.currentArenaWorldId();
+        ServerWorld world = HideSeekMapRuntimeSupport.resolveWorld(this.server, worldId);
         if (world == null) {
-            this.logger.warn("[{}] arena_world를 찾지 못함: {}", HideSeek.MOD_ID, this.arenaWorldId);
+            this.logger.warn("[{}] arena_world를 찾지 못함: {}", HideSeek.MOD_ID, worldId);
             return;
         }
 
@@ -4037,7 +4038,10 @@ public final class HideSeekService {
     }
 
     private void teleportTeamToArena(boolean seekerTeam) {
-        String worldId = this.arenaWorldId == null || this.arenaWorldId.isBlank() ? "minecraft:overworld" : this.arenaWorldId;
+        String worldId = this.currentArenaWorldId();
+        double x = this.currentArenaX();
+        double y = this.currentArenaY();
+        double z = this.currentArenaZ();
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
             if (player.isSpectator()) {
                 continue;
@@ -4045,8 +4049,39 @@ public final class HideSeekService {
             if (this.isSeekerTeamMember(player) != seekerTeam) {
                 continue;
             }
-            HideSeekTeleportSupport.teleportPlayer(this.server, player, worldId, this.arenaX, this.arenaY, this.arenaZ);
+            HideSeekTeleportSupport.teleportPlayer(this.server, player, worldId, x, y, z);
         }
+    }
+
+    private boolean hasCurrentMapSpawnOverride() {
+        if (this.currentMapConfig == null) {
+            return false;
+        }
+        if (this.currentMapConfig.spawnWorldId() == null || this.currentMapConfig.spawnWorldId().isBlank()) {
+            return false;
+        }
+        return Double.isFinite(this.currentMapConfig.spawnX())
+                && Double.isFinite(this.currentMapConfig.spawnY())
+                && Double.isFinite(this.currentMapConfig.spawnZ());
+    }
+
+    private String currentArenaWorldId() {
+        if (this.hasCurrentMapSpawnOverride()) {
+            return this.currentMapConfig.spawnWorldId();
+        }
+        return this.arenaWorldId == null || this.arenaWorldId.isBlank() ? "minecraft:overworld" : this.arenaWorldId;
+    }
+
+    private double currentArenaX() {
+        return this.hasCurrentMapSpawnOverride() ? this.currentMapConfig.spawnX() : this.arenaX;
+    }
+
+    private double currentArenaY() {
+        return this.hasCurrentMapSpawnOverride() ? this.currentMapConfig.spawnY() : this.arenaY;
+    }
+
+    private double currentArenaZ() {
+        return this.hasCurrentMapSpawnOverride() ? this.currentMapConfig.spawnZ() : this.arenaZ;
     }
 
     private void teleportSeekersToWaitingArea() {

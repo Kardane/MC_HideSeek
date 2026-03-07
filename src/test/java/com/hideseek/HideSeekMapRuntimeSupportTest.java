@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class HideSeekMapRuntimeSupportTest {
     @Test
     void resolveSelectedMapConfigReturnsSelectedMapWhenPresent() {
-        HideSeekMapConfig alpha = new HideSeekMapConfig("alpha", "", "minecraft:alpha", List.of(), "alpha.json");
-        HideSeekMapConfig beta = new HideSeekMapConfig("beta", "", "minecraft:beta", List.of(), "beta.json");
+        HideSeekMapConfig alpha = new HideSeekMapConfig("alpha", "", "minecraft:alpha", List.of(), "alpha.json", "", Double.NaN, Double.NaN, Double.NaN);
+        HideSeekMapConfig beta = new HideSeekMapConfig("beta", "", "minecraft:beta", List.of(), "beta.json", "", Double.NaN, Double.NaN, Double.NaN);
 
         HideSeekMapConfig picked = HideSeekMapRuntimeSupport.resolveSelectedMapConfig(List.of(alpha, beta), "beta");
 
@@ -22,8 +22,8 @@ class HideSeekMapRuntimeSupportTest {
 
     @Test
     void resolveSelectedMapConfigFallsBackToFirstMapWhenSelectionMissing() {
-        HideSeekMapConfig alpha = new HideSeekMapConfig("alpha", "", "minecraft:alpha", List.of(), "alpha.json");
-        HideSeekMapConfig beta = new HideSeekMapConfig("beta", "", "minecraft:beta", List.of(), "beta.json");
+        HideSeekMapConfig alpha = new HideSeekMapConfig("alpha", "", "minecraft:alpha", List.of(), "alpha.json", "", Double.NaN, Double.NaN, Double.NaN);
+        HideSeekMapConfig beta = new HideSeekMapConfig("beta", "", "minecraft:beta", List.of(), "beta.json", "", Double.NaN, Double.NaN, Double.NaN);
 
         HideSeekMapConfig picked = HideSeekMapRuntimeSupport.resolveSelectedMapConfig(List.of(alpha, beta), "missing");
 

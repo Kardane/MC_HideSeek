@@ -7,6 +7,10 @@ public record HideSeekMapConfig(
         String description,
         String structureTemplate,
         List<HideSeekDisguiseBlockConfig> disguiseBlocks,
-        String sourceFileName
+        String sourceFileName,
+        String spawnWorldId,
+        double spawnX,
+        double spawnY,
+        double spawnZ
 ) {
 }

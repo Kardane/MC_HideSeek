@@ -232,6 +232,10 @@
   "id": "arena_01",
   "description": "기본 경기장",
   "structure_template": "hideseek:arena/arena_01",
+  "spawn_world": "minecraft:overworld",
+  "spawn_x": 0.5,
+  "spawn_y": 64.0,
+  "spawn_z": 0.5,
   "disguise_blocks": [
     {
       "block_state": "minecraft:stone",
@@ -249,6 +253,8 @@
 | `id` | 맵 고유 ID (중복 불가) |
 | `description` | 운영 메뉴 맵 선택 UI에 표시할 설명 (선택 사항) |
 | `structure_template` | 로드할 구조물 템플릿 ID |
+| `spawn_world` | 이 맵 라운드에서 사용할 플레이어 스폰 월드 ID (선택 사항, 없으면 `arena_world` 사용) |
+| `spawn_x`, `spawn_y`, `spawn_z` | 이 맵 라운드에서 사용할 플레이어 스폰 좌표 (선택 사항, 없으면 `arena_x/y/z` 사용) |
 | `disguise_blocks[].block_state` | 실제 게임에서 채울 블록 |
 | `disguise_blocks[].marker_block_state` | 구조물 안 슬롯 표시용 마커 블록 |
 | `disguise_blocks[].weight` | 블록 선택 가중치 |
@@ -256,6 +262,8 @@
 동작 포인트:
 
 - 라운드 시작 시 마커 블록 스캔 후 실제 블록으로 치환
+- 맵 파일에 `spawn_world/x/y/z`가 모두 있으면 그 좌표로 블록팀/술래를 입장시킴
+- 맵 스폰 좌표가 없으면 기존 `hide_seek.json`의 `arena_world`, `arena_x/y/z`를 그대로 사용
 - `slot_randomization` 설정으로 활성 슬롯 수 랜덤 결정
 - 동일 `marker_block_state` 중복은 정규화 단계에서 제거
 
