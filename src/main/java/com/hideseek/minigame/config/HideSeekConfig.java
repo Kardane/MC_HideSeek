@@ -43,6 +43,7 @@ public final class HideSeekConfig {
     private final double revealedProxySlimeScale;
     private final int seekerEndgameSpeedLevel;
     private final double seekerMaxHealth;
+    private final List<String> interactableBlockWhitelist;
     private final String spawnWorldId;
     private final double spawnX;
     private final double spawnY;
@@ -95,6 +96,7 @@ public final class HideSeekConfig {
             double revealedProxySlimeScale,
             int seekerEndgameSpeedLevel,
             double seekerMaxHealth,
+            List<String> interactableBlockWhitelist,
             String spawnWorldId,
             double spawnX,
             double spawnY,
@@ -146,6 +148,7 @@ public final class HideSeekConfig {
         this.revealedProxySlimeScale = revealedProxySlimeScale;
         this.seekerEndgameSpeedLevel = seekerEndgameSpeedLevel;
         this.seekerMaxHealth = seekerMaxHealth;
+        this.interactableBlockWhitelist = interactableBlockWhitelist;
         this.spawnWorldId = spawnWorldId;
         this.spawnX = spawnX;
         this.spawnY = spawnY;
@@ -199,6 +202,13 @@ public final class HideSeekConfig {
                 2.2D,
                 1,
                 40.0D,
+                List.of(
+                        "#minecraft:doors",
+                        "#minecraft:trapdoors",
+                        "#minecraft:buttons",
+                        "minecraft:lever",
+                        "#minecraft:fence_gates"
+                ),
                 "minecraft:overworld",
                 0.5D,
                 64.0D,
@@ -348,6 +358,7 @@ public final class HideSeekConfig {
             double seekerMaxHealth = json.has("seeker_max_health")
                     ? json.get("seeker_max_health").getAsDouble()
                     : defaults.seekerMaxHealth;
+            List<String> interactableBlockWhitelist = readStringArray(json, "interactable_block_whitelist", defaults.interactableBlockWhitelist);
 
             String spawnWorldId = json.has("spawn_world")
                     ? json.get("spawn_world").getAsString()
@@ -472,6 +483,7 @@ public final class HideSeekConfig {
                     revealedProxySlimeScale,
                     seekerEndgameSpeedLevel,
                     seekerMaxHealth,
+                    interactableBlockWhitelist,
                     spawnWorldId,
                     spawnX,
                     spawnY,
@@ -612,6 +624,10 @@ public final class HideSeekConfig {
         return this.seekerMaxHealth;
     }
 
+    public List<String> interactableBlockWhitelist() {
+        return this.interactableBlockWhitelist;
+    }
+
     public String spawnWorldId() {
         return this.spawnWorldId;
     }
@@ -726,6 +742,7 @@ public final class HideSeekConfig {
             double revealedProxySlimeScale,
             int seekerEndgameSpeedLevel,
             double seekerMaxHealth,
+            List<String> interactableBlockWhitelist,
             String spawnWorldId,
             double spawnX,
             double spawnY,
@@ -826,6 +843,7 @@ public final class HideSeekConfig {
                 : defaults.revealedProxySlimeScale;
         int safeSeekerEndgameSpeedLevel = seekerEndgameSpeedLevel < 0 ? 0 : seekerEndgameSpeedLevel;
         double safeSeekerMaxHealth = Double.isFinite(seekerMaxHealth) ? Math.max(1.0D, seekerMaxHealth) : defaults.seekerMaxHealth;
+        List<String> safeInteractableBlockWhitelist = sanitizeStringList(interactableBlockWhitelist, defaults.interactableBlockWhitelist);
 
         String safeSpawnWorldId = (spawnWorldId == null || spawnWorldId.isBlank())
                 ? defaults.spawnWorldId
@@ -891,6 +909,7 @@ public final class HideSeekConfig {
                 safeRevealedProxySlimeScale,
                 safeSeekerEndgameSpeedLevel,
                 safeSeekerMaxHealth,
+                safeInteractableBlockWhitelist,
                 safeSpawnWorldId,
                 safeSpawnX,
                 safeSpawnY,
@@ -989,6 +1008,11 @@ public final class HideSeekConfig {
         json.addProperty("revealed_proxy_slime_scale", this.revealedProxySlimeScale);
         json.addProperty("seeker_endgame_speed_level", this.seekerEndgameSpeedLevel);
         json.addProperty("seeker_max_health", this.seekerMaxHealth);
+        JsonArray interactableBlockWhitelist = new JsonArray();
+        for (String entry : this.interactableBlockWhitelist) {
+            interactableBlockWhitelist.add(entry);
+        }
+        json.add("interactable_block_whitelist", interactableBlockWhitelist);
         json.addProperty("spawn_world", this.spawnWorldId);
         json.addProperty("spawn_x", this.spawnX);
         json.addProperty("spawn_y", this.spawnY);

@@ -3,6 +3,7 @@ package com.hideseek.minigame;
 import com.hideseek.minigame.HideSeekService;
 import com.hideseek.minigame.HideSeekJobs.BlockJob;
 import com.hideseek.minigame.HideSeekJobs.SeekerJob;
+import com.hideseek.minigame.config.HideSeekMapConfig;
 import com.hideseek.minigame.stats.HideSeekStatsModels;
 import eu.pb4.sgui.api.elements.GuiElement;
 import eu.pb4.sgui.api.elements.GuiElementBuilder;
@@ -19,6 +20,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class HideSeekMenuController {
+    private static final int MAPS_PER_PAGE = 45;
     private final HideSeekService service;
 
     public HideSeekMenuController(HideSeekService service) {
@@ -177,6 +179,15 @@ public final class HideSeekMenuController {
                 })
                 .build());
 
+        gui.setSlot(4, new GuiElementBuilder(Items.FILLED_MAP)
+                .setName(this.service.menuGuiText("op_map_select"))
+                .setLore(java.util.List.of(this.service.menuGuiText("op_map_select_lore")))
+                .setCallback((index, clickType, actionType, slotGui) -> {
+                    this.service.menuPlayUiClickSound(player);
+                    this.openMapSelectionMenu(player, 0);
+                })
+                .build());
+
         gui.setSlot(7, this.createBackButton(player, this::openMainSelectionMenu));
         gui.setSlot(8, this.createCloseButton(player));
         gui.open();
@@ -207,6 +218,58 @@ public final class HideSeekMenuController {
 
         gui.setSlot(3, this.createBackButton(player, this::openOpControlMenu));
         gui.setSlot(4, this.createCloseButton(player));
+        gui.open();
+    }
+
+    private void openMapSelectionMenu(ServerPlayerEntity player, int page) {
+        List<HideSeekMapConfig> maps = this.service.menuAvailableMaps();
+        int totalPages = Math.max(1, (maps.size() + MAPS_PER_PAGE - 1) / MAPS_PER_PAGE);
+        int safePage = Math.max(0, Math.min(page, totalPages - 1));
+
+        SimpleGui gui = new SimpleGui(ScreenHandlerType.GENERIC_9X6, player, false);
+        String title = this.service.menuTextConfigValue("map_select_title")
+                .replace("{page}", Integer.toString(safePage + 1))
+                .replace("{total}", Integer.toString(totalPages));
+        gui.setTitle(this.service.menuRenderRaw(title));
+        gui.setLockPlayerInventory(true);
+
+        int startIndex = safePage * MAPS_PER_PAGE;
+        int endIndex = Math.min(startIndex + MAPS_PER_PAGE, maps.size());
+        for (int mapIndex = startIndex; mapIndex < endIndex; mapIndex++) {
+            HideSeekMapConfig map = maps.get(mapIndex);
+            int slot = mapIndex - startIndex;
+            gui.setSlot(slot, new GuiElementBuilder(Items.FILLED_MAP)
+                    .setName(this.service.menuRenderRaw(map.id()))
+                    .setLore(this.buildMapLore(map))
+                    .setCallback((index, clickType, actionType, slotGui) -> {
+                        this.service.menuPlayUiClickSound(player);
+                        player.sendMessage(this.service.selectMapById(player, map.id()), false);
+                        this.openMapSelectionMenu(player, safePage);
+                    })
+                    .build());
+        }
+
+        if (safePage > 0) {
+            gui.setSlot(45, new GuiElementBuilder(Items.ARROW)
+                    .setName(this.service.menuGuiText("map_select_prev"))
+                    .setCallback((index, clickType, actionType, slotGui) -> {
+                        this.service.menuPlayUiClickSound(player);
+                        this.openMapSelectionMenu(player, safePage - 1);
+                    })
+                    .build());
+        }
+        if (safePage + 1 < totalPages) {
+            gui.setSlot(53, new GuiElementBuilder(Items.SPECTRAL_ARROW)
+                    .setName(this.service.menuGuiText("map_select_next"))
+                    .setCallback((index, clickType, actionType, slotGui) -> {
+                        this.service.menuPlayUiClickSound(player);
+                        this.openMapSelectionMenu(player, safePage + 1);
+                    })
+                    .build());
+        }
+
+        gui.setSlot(49, this.createBackButton(player, this::openOpControlMenu));
+        gui.setSlot(50, this.createCloseButton(player));
         gui.open();
     }
 
@@ -321,6 +384,40 @@ public final class HideSeekMenuController {
         lore.add(this.renderGuiStat("stats_avg_kills", this.service.menuFormatAverageDecimal(stats.totalKills, stats.totalGames)));
         lore.add(this.renderGuiStat("stats_avg_reveals", this.service.menuFormatAverageDecimal(stats.totalReveals, stats.totalGames)));
         lore.add(this.renderGuiStat("stats_total_games", Long.toString(stats.totalGames)));
+        return lore;
+    }
+
+    private List<Text> buildMapLore(HideSeekMapConfig map) {
+        List<Text> lore = new ArrayList<>();
+        if (map == null) {
+            return lore;
+        }
+
+        if (map.id().equals(this.service.menuSelectedMapId())) {
+            lore.add(this.service.menuGuiText("map_select_selected"));
+        }
+
+        String description = map.description() == null || map.description().isBlank()
+                ? this.service.menuTextConfigValue("map_select_description_empty")
+                : map.description();
+        lore.add(this.service.menuRenderRaw(this.service.menuTextConfigValue("map_select_description").replace("{value}", description)));
+        lore.add(this.service.menuRenderRaw(this.service.menuTextConfigValue("map_select_file").replace("{value}", map.sourceFileName())));
+
+        List<String> blockNames = this.service.menuMapBlockNames(map);
+        if (blockNames.isEmpty()) {
+            lore.add(this.service.menuRenderRaw(this.service.menuTextConfigValue("map_select_blocks_empty")));
+            return lore;
+        }
+
+        lore.add(this.service.menuGuiText("map_select_blocks"));
+        int visibleCount = Math.min(5, blockNames.size());
+        for (int index = 0; index < visibleCount; index++) {
+            lore.add(this.service.menuRenderRaw("&7- " + blockNames.get(index)));
+        }
+        if (blockNames.size() > visibleCount) {
+            lore.add(this.service.menuRenderRaw(this.service.menuTextConfigValue("map_select_blocks_more")
+                    .replace("{count}", Integer.toString(blockNames.size() - visibleCount))));
+        }
         return lore;
     }
 

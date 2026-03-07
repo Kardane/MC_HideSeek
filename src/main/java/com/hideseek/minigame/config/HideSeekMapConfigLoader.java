@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +31,12 @@ public final class HideSeekMapConfigLoader {
 
         Map<String, HideSeekMapConfig> byId = new LinkedHashMap<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(mapsDir, "*.json")) {
+            List<Path> paths = new ArrayList<>();
             for (Path path : stream) {
+                paths.add(path);
+            }
+            paths.sort(Comparator.comparing(candidate -> candidate.getFileName().toString()));
+            for (Path path : paths) {
                 HideSeekMapConfig config = loadOne(path, logger);
                 if (config == null) {
                     continue;
@@ -55,10 +62,11 @@ public final class HideSeekMapConfigLoader {
         try {
             JsonObject json = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
             String id = readString(json, "id", "");
+            String description = readString(json, "description", "");
             String template = readString(json, "structure_template", "");
             List<HideSeekDisguiseBlockConfig> blocks = HideSeekDisguiseBlockConfigCodec.read(json, "disguise_blocks");
 
-            HideSeekMapConfig safe = sanitize(id, template, blocks);
+            HideSeekMapConfig safe = sanitize(id, description, template, blocks, path.getFileName().toString());
             int dropped = blocks.size() - safe.disguiseBlocks().size();
             if (dropped > 0) {
                 logger.warn("[{}] 맵 설정 정규화로 항목 {}개 제외: {}", HideSeek.MOD_ID, dropped, path);
@@ -70,11 +78,13 @@ public final class HideSeekMapConfigLoader {
         }
     }
 
-    private static HideSeekMapConfig sanitize(String id, String template, List<HideSeekDisguiseBlockConfig> blocks) {
+    private static HideSeekMapConfig sanitize(String id, String description, String template, List<HideSeekDisguiseBlockConfig> blocks, String sourceFileName) {
         String safeId = id == null ? "" : id.trim();
+        String safeDescription = description == null ? "" : description.trim();
         String safeTemplate = template == null ? "" : template.trim();
         List<HideSeekDisguiseBlockConfig> safeBlocks = HideSeekDisguiseBlockConfigCodec.sanitize(blocks);
-        return new HideSeekMapConfig(safeId, safeTemplate, safeBlocks);
+        String safeSourceFileName = sourceFileName == null ? "" : sourceFileName.trim();
+        return new HideSeekMapConfig(safeId, safeDescription, safeTemplate, safeBlocks, safeSourceFileName);
     }
 
     private static String readString(JsonObject json, String key, String fallback) {

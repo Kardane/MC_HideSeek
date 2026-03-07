@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,6 +25,13 @@ class HideSeekConfigTest {
         assertEquals(20, config.revealedBlockInvulnerableTicks());
         assertEquals(2.2D, config.revealedProxySlimeScale());
         assertEquals(40.0D, config.seekerMaxHealth());
+        assertEquals(List.of(
+                "#minecraft:doors",
+                "#minecraft:trapdoors",
+                "#minecraft:buttons",
+                "minecraft:lever",
+                "#minecraft:fence_gates"
+        ), config.interactableBlockWhitelist());
     }
 
     @Test
@@ -36,7 +44,11 @@ class HideSeekConfigTest {
                   "seeker_entry_invulnerable_ticks": 60,
                   "revealed_block_invulnerable_ticks": 35,
                   "revealed_proxy_slime_scale": 3.1,
-                  "seeker_max_health": 55.0
+                  "seeker_max_health": 55.0,
+                  "interactable_block_whitelist": [
+                    "minecraft:oak_door",
+                    "#minecraft:buttons"
+                  ]
                 }
                 """);
 
@@ -47,6 +59,7 @@ class HideSeekConfigTest {
         assertEquals(35, config.revealedBlockInvulnerableTicks());
         assertEquals(3.1D, config.revealedProxySlimeScale());
         assertEquals(55.0D, config.seekerMaxHealth());
+        assertEquals(List.of("minecraft:oak_door", "#minecraft:buttons"), config.interactableBlockWhitelist());
     }
 
     @Test
@@ -61,5 +74,6 @@ class HideSeekConfigTest {
         assertTrue(saved.contains("\"revealed_block_invulnerable_ticks\""));
         assertTrue(saved.contains("\"revealed_proxy_slime_scale\""));
         assertTrue(saved.contains("\"seeker_max_health\""));
+        assertTrue(saved.contains("\"interactable_block_whitelist\""));
     }
 }

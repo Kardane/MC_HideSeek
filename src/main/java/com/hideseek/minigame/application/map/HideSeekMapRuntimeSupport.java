@@ -22,38 +22,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 public final class HideSeekMapRuntimeSupport {
     private HideSeekMapRuntimeSupport() {
     }
 
-    public static MapSelectionResult selectNextMapConfig(List<HideSeekMapConfig> mapConfigs, String lastMapId) {
+    public static HideSeekMapConfig resolveSelectedMapConfig(List<HideSeekMapConfig> mapConfigs, String selectedMapId) {
         if (mapConfigs == null || mapConfigs.isEmpty()) {
-            return new MapSelectionResult(null, lastMapId == null ? "" : lastMapId);
+            return null;
         }
-        if (mapConfigs.size() == 1) {
-            HideSeekMapConfig only = mapConfigs.getFirst();
-            return new MapSelectionResult(only, only.id());
-        }
-
-        HideSeekMapConfig picked = null;
-        for (int attempt = 0; attempt < 8; attempt++) {
-            HideSeekMapConfig candidate = mapConfigs.get(ThreadLocalRandom.current().nextInt(mapConfigs.size()));
-            if (candidate == null) {
-                continue;
+        if (selectedMapId != null && !selectedMapId.isBlank()) {
+            for (HideSeekMapConfig candidate : mapConfigs) {
+                if (candidate != null && selectedMapId.equals(candidate.id())) {
+                    return candidate;
+                }
             }
-            if (lastMapId != null && !lastMapId.isBlank() && lastMapId.equals(candidate.id())) {
-                continue;
-            }
-            picked = candidate;
-            break;
         }
-        if (picked == null) {
-            picked = mapConfigs.getFirst();
-        }
-        return new MapSelectionResult(picked, picked.id());
+        return mapConfigs.getFirst();
     }
 
     public static ServerWorld resolveWorld(MinecraftServer server, String worldIdText) {
@@ -209,9 +195,6 @@ public final class HideSeekMapRuntimeSupport {
             slots.set(i, slots.get(j));
             slots.set(j, a);
         }
-    }
-
-    public record MapSelectionResult(HideSeekMapConfig map, String nextLastMapId) {
     }
 
     public record ResolvedDisguiseBlock(BlockState disguiseBlockState, BlockState markerBlockState, double weight) {

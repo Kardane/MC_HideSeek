@@ -32,6 +32,7 @@ import com.hideseek.minigame.stats.HideSeekStatsDomainService;
 import com.hideseek.minigame.stats.HideSeekStatsModels;
 import com.hideseek.minigame.HideSeekMenuController;
 import com.hideseek.minigame.HideSeekUtils;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.component.DataComponentTypes;
@@ -59,6 +60,7 @@ import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.mob.SlimeEntity;
 import net.minecraft.item.Item;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.s2c.play.ExperienceBarUpdateS2CPacket;
@@ -69,6 +71,7 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.scoreboard.ScoreAccess;
 import net.minecraft.scoreboard.AbstractTeam;
 import net.minecraft.scoreboard.ScoreHolder;
@@ -207,7 +210,7 @@ public final class HideSeekService {
 
     private List<HideSeekMapConfig> mapConfigs;
     private HideSeekMapConfig currentMapConfig;
-    private String lastMapId;
+    private String selectedMapId;
     private List<HideSeekDisguiseBlockConfig> defaultDisguiseBlockConfigs;
     private List<HideSeekMapRuntimeSupport.ResolvedDisguiseBlock> currentRoundDisguiseBlocks;
     private int seekerCountOverride;
@@ -245,6 +248,9 @@ public final class HideSeekService {
     private final Map<UUID, Long> lastInteractionJobAssignTickByPlayer = new HashMap<>();
     private final Map<UUID, UUID> lastInteractionJobEntityByPlayer = new HashMap<>();
     private final Set<UUID> proxyDamageForwardingPlayerIds = new HashSet<>();
+    private final Set<Block> allowedInteractiveBlocks = new HashSet<>();
+    private final List<TagKey<Block>> allowedInteractiveBlockTags = new ArrayList<>();
+    private final List<TagKey<Item>> allowedInteractiveItemTags = new ArrayList<>();
     private final HideSeekMenuController menuController;
     private final HideSeekResourcePackConfigurer resourcePackConfigurer;
     private final HideSeekPhaseFlowOrchestrationService roundFlowService;
@@ -320,7 +326,7 @@ public final class HideSeekService {
 
         this.mapConfigs = List.of();
         this.currentMapConfig = null;
-        this.lastMapId = "";
+        this.selectedMapId = "";
         this.defaultDisguiseBlockConfigs = this.config.defaultDisguiseBlocks();
         this.currentRoundDisguiseBlocks = List.of();
         this.seekerCountOverride = NO_SEEKER_OVERRIDE;
@@ -343,6 +349,7 @@ public final class HideSeekService {
         this.combatAbilityService = new HideSeekCombatAbilityOrchestrationService(this);
         this.phaseEngine = new GamePhaseEngine();
         this.blockStateResolver = new HideSeekBlockStateResolver(this.logger);
+        this.reloadInteractableBlockWhitelist();
     }
 
     public HideSeekConfig reloadConfig() {
@@ -352,6 +359,7 @@ public final class HideSeekService {
         this.requiredStationaryTicks = Math.max(1, this.config.crouchTicks());
         this.defaultDisguiseBlockConfigs = this.config.defaultDisguiseBlocks();
         this.mapConfigs = HideSeekMapConfigLoader.loadAll(this.configPath.getParent().resolve(this.config.mapsDir()), this.logger);
+        this.normalizeSelectedMapId();
         List<String> defaultDisguiseBlockStates = new ArrayList<>();
         for (HideSeekDisguiseBlockConfig entry : this.defaultDisguiseBlockConfigs) {
             if (entry != null && entry.blockState() != null && !entry.blockState().isBlank()) {
@@ -393,6 +401,7 @@ public final class HideSeekService {
         this.seekerWaitingX = this.config.seekerWaitingX();
         this.seekerWaitingY = this.config.seekerWaitingY();
         this.seekerWaitingZ = this.config.seekerWaitingZ();
+        this.reloadInteractableBlockWhitelist();
 
         this.clearAllManagedDisguises();
         this.trackByPlayer.clear();
@@ -685,6 +694,77 @@ public final class HideSeekService {
 
     public PlayerJob currentJob(ServerPlayerEntity player) {
         return this.jobByPlayer.get(player.getUuid());
+    }
+
+    public List<HideSeekMapConfig> menuAvailableMaps() {
+        return List.copyOf(this.mapConfigs);
+    }
+
+    public String menuSelectedMapId() {
+        return this.selectedMapId == null ? "" : this.selectedMapId;
+    }
+
+    public Text selectMapById(ServerPlayerEntity player, String mapId) {
+        HideSeekMapConfig map = this.findMapConfig(mapId);
+        if (map == null) {
+            return this.renderMapSelectionMessage("map_selected_invalid", mapId == null ? "" : mapId);
+        }
+
+        this.selectedMapId = map.id();
+        Text feedback = this.renderMapSelectionMessage("map_selected_feedback", map.id());
+        this.broadcastMapSelection(map.id());
+        return feedback;
+    }
+
+    public boolean shouldAllowConfiguredBlockInteraction(ServerPlayerEntity player, BlockPos blockPos) {
+        if (player == null || blockPos == null || player.isSpectator()) {
+            return true;
+        }
+        if (!HideSeekDecisionPolicies.isGameInProgress(this.gamePhase)) {
+            return true;
+        }
+
+        BlockState blockState = player.getWorld().getBlockState(blockPos);
+        Block block = blockState.getBlock();
+        if (this.allowedInteractiveBlocks.contains(block)) {
+            return true;
+        }
+        for (TagKey<Block> tag : this.allowedInteractiveBlockTags) {
+            if (blockState.isIn(tag)) {
+                return true;
+            }
+        }
+
+        Item blockItem = block.asItem();
+        if (blockItem != Items.AIR) {
+            for (TagKey<Item> tag : this.allowedInteractiveItemTags) {
+                if (blockItem.getRegistryEntry().isIn(tag)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    List<String> menuMapBlockNames(HideSeekMapConfig map) {
+        List<String> names = new ArrayList<>();
+        if (map == null) {
+            return names;
+        }
+
+        List<HideSeekDisguiseBlockConfig> effectiveBlocks = (map.disguiseBlocks() != null && !map.disguiseBlocks().isEmpty())
+                ? map.disguiseBlocks()
+                : this.defaultDisguiseBlockConfigs;
+        for (HideSeekDisguiseBlockConfig entry : effectiveBlocks) {
+            if (entry == null || entry.blockState() == null || entry.blockState().isBlank()) {
+                continue;
+            }
+            String blockName = Text.translatable(this.resolveBlockState(entry.blockState()).getBlock().getTranslationKey()).getString();
+            if (!names.contains(blockName)) {
+                names.add(blockName);
+            }
+        }
+        return List.copyOf(names);
     }
 
     private boolean isDamagePreventedByPhaseOrInvulnerability(UUID playerId, long now) {
@@ -1979,6 +2059,70 @@ public final class HideSeekService {
         }
     }
 
+    private void normalizeSelectedMapId() {
+        if (this.selectedMapId == null || this.selectedMapId.isBlank()) {
+            this.selectedMapId = "";
+            return;
+        }
+        if (this.findMapConfig(this.selectedMapId) == null) {
+            this.selectedMapId = "";
+        }
+    }
+
+    private HideSeekMapConfig findMapConfig(String mapId) {
+        if (mapId == null || mapId.isBlank()) {
+            return null;
+        }
+        for (HideSeekMapConfig map : this.mapConfigs) {
+            if (map != null && mapId.equals(map.id())) {
+                return map;
+            }
+        }
+        return null;
+    }
+
+    private void reloadInteractableBlockWhitelist() {
+        this.allowedInteractiveBlocks.clear();
+        this.allowedInteractiveBlockTags.clear();
+        this.allowedInteractiveItemTags.clear();
+
+        for (String rawEntry : this.config.interactableBlockWhitelist()) {
+            if (rawEntry == null || rawEntry.isBlank()) {
+                continue;
+            }
+
+            String entry = rawEntry.trim();
+            if (entry.startsWith("#")) {
+                Identifier tagId = Identifier.tryParse(entry.substring(1));
+                if (tagId == null) {
+                    this.logger.warn("[{}] interactable_block_whitelist 태그가 잘못됨: {}", HideSeek.MOD_ID, entry);
+                    continue;
+                }
+                this.allowedInteractiveBlockTags.add(TagKey.of(RegistryKeys.BLOCK, tagId));
+                this.allowedInteractiveItemTags.add(TagKey.of(RegistryKeys.ITEM, tagId));
+                continue;
+            }
+
+            Identifier id = Identifier.tryParse(entry);
+            if (id == null) {
+                this.logger.warn("[{}] interactable_block_whitelist ID가 잘못됨: {}", HideSeek.MOD_ID, entry);
+                continue;
+            }
+            if (Registries.BLOCK.containsId(id)) {
+                this.allowedInteractiveBlocks.add(Registries.BLOCK.get(id));
+                continue;
+            }
+            if (Registries.ITEM.containsId(id)) {
+                Item item = Registries.ITEM.get(id);
+                if (item instanceof BlockItem blockItem) {
+                    this.allowedInteractiveBlocks.add(blockItem.getBlock());
+                    continue;
+                }
+            }
+            this.logger.warn("[{}] interactable_block_whitelist 항목을 블록으로 해석하지 못함: {}", HideSeek.MOD_ID, entry);
+        }
+    }
+
     private int getConfiguredSeekerCount(int totalPlayers) {
         int maxPlayers = Math.max(1, totalPlayers);
         if (this.seekerCountOverride > 0) {
@@ -2993,11 +3137,10 @@ public final class HideSeekService {
     }
 
     private void prepareMapForRound() {
-        HideSeekMapRuntimeSupport.MapSelectionResult selection = HideSeekMapRuntimeSupport.selectNextMapConfig(this.mapConfigs, this.lastMapId);
-        this.lastMapId = selection.nextLastMapId();
-        HideSeekMapConfig map = selection.map();
+        HideSeekMapConfig map = HideSeekMapRuntimeSupport.resolveSelectedMapConfig(this.mapConfigs, this.selectedMapId);
         this.currentMapConfig = map;
         if (map == null) {
+            this.currentRoundDisguiseBlocks = List.of();
             return;
         }
 
@@ -3717,6 +3860,18 @@ public final class HideSeekService {
 
     public String menuFormatAverageSeconds(long totalTicks, long count) {
         return HideSeekUtils.formatAverageSeconds(totalTicks, count);
+    }
+
+    private Text renderMapSelectionMessage(String key, String mapName) {
+        String raw = this.textMessage(key).replace("{map}", mapName == null ? "" : mapName);
+        return this.renderMessage(raw, 0, 0, "", "");
+    }
+
+    private void broadcastMapSelection(String mapName) {
+        String template = this.textMessage("map_selected_broadcast").replace("{map}", mapName == null ? "" : mapName);
+        for (String line : this.splitTemplateLines(template)) {
+            this.server.getPlayerManager().broadcast(this.renderMessage(line, 0, 0, "", ""), false);
+        }
     }
 
     private Text guiText(String key) {

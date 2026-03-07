@@ -115,9 +115,13 @@ public final class HideSeekV2EventRegistrar {
                 return ActionResult.SUCCESS;
             }
 
-            return service.tryRevealFromBlockInteraction(serverPlayer, hitResult.getBlockPos(), player.getStackInHand(hand))
-                    ? ActionResult.SUCCESS
-                    : ActionResult.PASS;
+            if (service.tryRevealFromBlockInteraction(serverPlayer, hitResult.getBlockPos(), player.getStackInHand(hand))) {
+                return ActionResult.SUCCESS;
+            }
+
+            return service.shouldAllowConfiguredBlockInteraction(serverPlayer, hitResult.getBlockPos())
+                    ? ActionResult.PASS
+                    : ActionResult.FAIL;
         });
 
         UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {

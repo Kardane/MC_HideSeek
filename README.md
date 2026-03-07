@@ -230,6 +230,7 @@
 ```json
 {
   "id": "arena_01",
+  "description": "기본 경기장",
   "structure_template": "hideseek:arena/arena_01",
   "disguise_blocks": [
     {
@@ -246,6 +247,7 @@
 | 키 | 설명 |
 |---|---|
 | `id` | 맵 고유 ID (중복 불가) |
+| `description` | 운영 메뉴 맵 선택 UI에 표시할 설명 (선택 사항) |
 | `structure_template` | 로드할 구조물 템플릿 ID |
 | `disguise_blocks[].block_state` | 실제 게임에서 채울 블록 |
 | `disguise_blocks[].marker_block_state` | 구조물 안 슬롯 표시용 마커 블록 |
