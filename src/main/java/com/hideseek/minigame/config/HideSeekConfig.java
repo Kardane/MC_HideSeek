@@ -64,8 +64,9 @@ public final class HideSeekConfig {
     private final boolean slotRandomizationEnabled;
     private final String slotRandomizationMode;
     private final String slotRandomizationRemoveState;
-    private final int slotRandomizationActiveCountMin;
-    private final int slotRandomizationActiveCountMax;
+    private final String slotRandomizationActiveCountMode;
+    private final double slotRandomizationActiveCountMin;
+    private final double slotRandomizationActiveCountMax;
     private final String slotRandomizationSeedSalt;
 
     private final List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks;
@@ -117,8 +118,9 @@ public final class HideSeekConfig {
             boolean slotRandomizationEnabled,
             String slotRandomizationMode,
             String slotRandomizationRemoveState,
-            int slotRandomizationActiveCountMin,
-            int slotRandomizationActiveCountMax,
+            String slotRandomizationActiveCountMode,
+            double slotRandomizationActiveCountMin,
+            double slotRandomizationActiveCountMax,
             String slotRandomizationSeedSalt,
 
             List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks
@@ -169,6 +171,7 @@ public final class HideSeekConfig {
         this.slotRandomizationEnabled = slotRandomizationEnabled;
         this.slotRandomizationMode = slotRandomizationMode;
         this.slotRandomizationRemoveState = slotRandomizationRemoveState;
+        this.slotRandomizationActiveCountMode = slotRandomizationActiveCountMode;
         this.slotRandomizationActiveCountMin = slotRandomizationActiveCountMin;
         this.slotRandomizationActiveCountMax = slotRandomizationActiveCountMax;
         this.slotRandomizationSeedSalt = slotRandomizationSeedSalt;
@@ -229,6 +232,7 @@ public final class HideSeekConfig {
                 true,
                 "place_or_remove",
                 "minecraft:air",
+                "count",
                 120,
                 200,
                 "hideseek_slots_v1",
@@ -434,11 +438,14 @@ public final class HideSeekConfig {
             JsonObject activeCount = slot != null && slot.has("active_count") && slot.get("active_count").isJsonObject()
                     ? slot.getAsJsonObject("active_count")
                     : null;
-            int slotActiveMin = activeCount != null
-                    ? readInt(activeCount, "min", defaults.slotRandomizationActiveCountMin)
+            String slotActiveMode = activeCount != null
+                    ? readString(activeCount, "mode", defaults.slotRandomizationActiveCountMode)
+                    : defaults.slotRandomizationActiveCountMode;
+            double slotActiveMin = activeCount != null
+                    ? readDouble(activeCount, "min", defaults.slotRandomizationActiveCountMin)
                     : defaults.slotRandomizationActiveCountMin;
-            int slotActiveMax = activeCount != null
-                    ? readInt(activeCount, "max", defaults.slotRandomizationActiveCountMax)
+            double slotActiveMax = activeCount != null
+                    ? readDouble(activeCount, "max", defaults.slotRandomizationActiveCountMax)
                     : defaults.slotRandomizationActiveCountMax;
 
             JsonObject defaultsObj = json.has("defaults") && json.get("defaults").isJsonObject()
@@ -504,6 +511,7 @@ public final class HideSeekConfig {
                     slotEnabled,
                     slotMode,
                     slotRemoveState,
+                    slotActiveMode,
                     slotActiveMin,
                     slotActiveMax,
                     slotSeedSalt,
@@ -700,11 +708,15 @@ public final class HideSeekConfig {
         return this.slotRandomizationRemoveState;
     }
 
-    public int slotRandomizationActiveCountMin() {
+    public String slotRandomizationActiveCountMode() {
+        return this.slotRandomizationActiveCountMode;
+    }
+
+    public double slotRandomizationActiveCountMin() {
         return this.slotRandomizationActiveCountMin;
     }
 
-    public int slotRandomizationActiveCountMax() {
+    public double slotRandomizationActiveCountMax() {
         return this.slotRandomizationActiveCountMax;
     }
 
@@ -763,8 +775,9 @@ public final class HideSeekConfig {
             boolean slotRandomizationEnabled,
             String slotRandomizationMode,
             String slotRandomizationRemoveState,
-            int slotRandomizationActiveCountMin,
-            int slotRandomizationActiveCountMax,
+            String slotRandomizationActiveCountMode,
+            double slotRandomizationActiveCountMin,
+            double slotRandomizationActiveCountMax,
             String slotRandomizationSeedSalt,
 
             List<HideSeekDisguiseBlockConfig> defaultDisguiseBlocks
@@ -875,8 +888,21 @@ public final class HideSeekConfig {
         String safeSlotRemoveState = (slotRandomizationRemoveState == null || slotRandomizationRemoveState.isBlank())
                 ? defaults.slotRandomizationRemoveState
                 : slotRandomizationRemoveState.trim();
-        int safeSlotActiveMin = clampInt(slotRandomizationActiveCountMin, 0, 2000000);
-        int safeSlotActiveMax = clampInt(slotRandomizationActiveCountMax, safeSlotActiveMin, 2000000);
+        String safeSlotActiveMode = (slotRandomizationActiveCountMode == null || slotRandomizationActiveCountMode.isBlank())
+                ? defaults.slotRandomizationActiveCountMode
+                : slotRandomizationActiveCountMode.trim().toLowerCase();
+        if (!"ratio".equals(safeSlotActiveMode)) {
+            safeSlotActiveMode = "count";
+        }
+        double safeSlotActiveMin;
+        double safeSlotActiveMax;
+        if ("ratio".equals(safeSlotActiveMode)) {
+            safeSlotActiveMin = clampDouble(slotRandomizationActiveCountMin, 0.0D, 1.0D);
+            safeSlotActiveMax = clampDouble(slotRandomizationActiveCountMax, safeSlotActiveMin, 1.0D);
+        } else {
+            safeSlotActiveMin = clampDouble(slotRandomizationActiveCountMin, 0.0D, 2000000.0D);
+            safeSlotActiveMax = clampDouble(slotRandomizationActiveCountMax, safeSlotActiveMin, 2000000.0D);
+        }
         String safeSlotSeedSalt = (slotRandomizationSeedSalt == null || slotRandomizationSeedSalt.isBlank())
                 ? defaults.slotRandomizationSeedSalt
                 : slotRandomizationSeedSalt;
@@ -930,6 +956,7 @@ public final class HideSeekConfig {
                 safeSlotEnabled,
                 safeSlotMode,
                 safeSlotRemoveState,
+                safeSlotActiveMode,
                 safeSlotActiveMin,
                 safeSlotActiveMax,
                 safeSlotSeedSalt,
@@ -1040,8 +1067,9 @@ public final class HideSeekConfig {
         slot.addProperty("mode", this.slotRandomizationMode);
         slot.addProperty("remove_state", this.slotRandomizationRemoveState);
         JsonObject activeCount = new JsonObject();
-        activeCount.addProperty("min", this.slotRandomizationActiveCountMin);
-        activeCount.addProperty("max", this.slotRandomizationActiveCountMax);
+        activeCount.addProperty("mode", this.slotRandomizationActiveCountMode);
+        addNumericProperty(activeCount, "min", this.slotRandomizationActiveCountMin);
+        addNumericProperty(activeCount, "max", this.slotRandomizationActiveCountMax);
         slot.add("active_count", activeCount);
         slot.addProperty("seed_salt", this.slotRandomizationSeedSalt);
         json.add("slot_randomization", slot);
@@ -1064,8 +1092,20 @@ public final class HideSeekConfig {
         return json.has(key) ? json.get(key).getAsInt() : fallback;
     }
 
+    private static double readDouble(JsonObject json, String key, double fallback) {
+        return json.has(key) ? json.get(key).getAsDouble() : fallback;
+    }
+
     private static boolean readBoolean(JsonObject json, String key, boolean fallback) {
         return json.has(key) ? json.get(key).getAsBoolean() : fallback;
+    }
+
+    private static void addNumericProperty(JsonObject json, String key, double value) {
+        if (Math.rint(value) == value) {
+            json.addProperty(key, (long) value);
+            return;
+        }
+        json.addProperty(key, value);
     }
 
     private static int clampInt(int value, int min, int max) {

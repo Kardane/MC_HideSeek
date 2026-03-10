@@ -20,6 +20,13 @@ public final class HideSeekDecisionPolicies {
         REVEAL
     }
 
+    public enum JoinModeDecision {
+        NONE,
+        FORCE_SPECTATOR,
+        FORCE_ADVENTURE_TO_SPAWN,
+        FORCE_SPECTATOR_TO_SPAWN
+    }
+
     public static RoundStartDecision decideRoundStart(GamePhase gamePhase, int seekerCount, int blockCount) {
         if (gamePhase != GamePhase.IDLE) {
             return RoundStartDecision.ALREADY_IN_PROGRESS;
@@ -32,6 +39,25 @@ public final class HideSeekDecisionPolicies {
 
     public static boolean isGameInProgress(GamePhase gamePhase) {
         return gamePhase != GamePhase.IDLE;
+    }
+
+    public static JoinModeDecision decideJoinModeAction(
+            boolean maintenanceMode,
+            boolean operator,
+            boolean adventureMode,
+            GamePhase gamePhase
+    ) {
+        if (maintenanceMode) {
+            return !operator && adventureMode
+                    ? JoinModeDecision.FORCE_SPECTATOR
+                    : JoinModeDecision.NONE;
+        }
+        if (!adventureMode) {
+            return gamePhase == GamePhase.IDLE
+                    ? JoinModeDecision.FORCE_ADVENTURE_TO_SPAWN
+                    : JoinModeDecision.FORCE_SPECTATOR_TO_SPAWN;
+        }
+        return JoinModeDecision.NONE;
     }
 
     public static int resolveSeekerCount(Integer explicitSeekerCount, int configuredSeekerCount, int playerCount) {

@@ -45,8 +45,9 @@ public final class HideSeekTextConfig {
             JsonObject root = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
             Map<String, String> messages = readStringMap(root, "messages", defaults.messages);
             Map<String, String> guiTexts = readStringMap(root, "gui_texts", defaults.guiTexts);
-
-            return new HideSeekTextConfig(messages, guiTexts);
+            HideSeekTextConfig config = new HideSeekTextConfig(messages, guiTexts);
+            config.save(path);
+            return config;
         } catch (Exception e) {
             logger.error("[{}] 텍스트 설정 파일 로드 실패. 기본값 사용", HideSeek.MOD_ID, e);
             HideSeekTextConfig defaults = defaults();
@@ -147,6 +148,8 @@ public final class HideSeekTextConfig {
         map.put("admin_job_items_denied", "[HideSeek] OP 권한이 필요함");
         map.put("admin_job_items_seeker_granted", "[HideSeek] 술래 직업 아이템 지급 완료");
         map.put("admin_job_items_block_granted", "[HideSeek] 블록 직업 아이템 지급 완료");
+        map.put("server_mode_maintenance", "[HideSeek] 서버 모드가 점검 모드로 변경됨");
+        map.put("server_mode_normal", "[HideSeek] 서버 모드가 일반 모드로 변경됨");
         map.put("map_selected_feedback", "[HideSeek] 선택된 맵: {map}");
         map.put("map_selected_broadcast", "[HideSeek] 다음 라운드 맵이 {map}(으)로 선택됨");
         map.put("map_selected_invalid", "[HideSeek] 등록되지 않은 맵: {map}");

@@ -3,6 +3,7 @@ package com.hideseek;
 import com.hideseek.minigame.application.map.HideSeekMapRuntimeSupport;
 import com.hideseek.minigame.config.HideSeekMapConfig;
 import org.junit.jupiter.api.Test;
+import net.minecraft.util.Identifier;
 
 import java.util.List;
 
@@ -33,5 +34,19 @@ class HideSeekMapRuntimeSupportTest {
     @Test
     void resolveSelectedMapConfigReturnsNullWhenNoMapsExist() {
         assertNull(HideSeekMapRuntimeSupport.resolveSelectedMapConfig(List.of(), "alpha"));
+    }
+
+    @Test
+    void resolveEmptyTemplateIdUsesSameFolderWithEmptyName() {
+        Identifier empty = HideSeekMapRuntimeSupport.resolveEmptyTemplateId(Identifier.of("hideseek", "arena/arena_01"));
+
+        assertEquals(Identifier.of("hideseek", "arena/empty"), empty);
+    }
+
+    @Test
+    void resolveEmptyTemplateIdFallsBackToNamespaceRootEmpty() {
+        Identifier empty = HideSeekMapRuntimeSupport.resolveEmptyTemplateId(Identifier.of("hideseek", "arena_01"));
+
+        assertEquals(Identifier.of("hideseek", "empty"), empty);
     }
 }

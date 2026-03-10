@@ -25,6 +25,9 @@ class HideSeekConfigTest {
         assertEquals(20, config.revealedBlockInvulnerableTicks());
         assertEquals(2.2D, config.revealedProxySlimeScale());
         assertEquals(40.0D, config.seekerMaxHealth());
+        assertEquals("count", config.slotRandomizationActiveCountMode());
+        assertEquals(120.0D, config.slotRandomizationActiveCountMin());
+        assertEquals(200.0D, config.slotRandomizationActiveCountMax());
         assertEquals(List.of(
                 "#minecraft:doors",
                 "#minecraft:trapdoors",
@@ -40,6 +43,13 @@ class HideSeekConfigTest {
         Files.createDirectories(configPath.getParent());
         Files.writeString(configPath, """
                 {
+                  "slot_randomization": {
+                    "active_count": {
+                      "mode": "ratio",
+                      "min": 0.25,
+                      "max": 0.75
+                    }
+                  },
                   "reveal_fail_damage": 2.5,
                   "seeker_entry_invulnerable_ticks": 60,
                   "revealed_block_invulnerable_ticks": 35,
@@ -54,6 +64,9 @@ class HideSeekConfigTest {
 
         HideSeekConfig config = HideSeekConfig.loadOrCreate(configPath, LoggerFactory.getLogger("HideSeekConfigTest"));
 
+        assertEquals("ratio", config.slotRandomizationActiveCountMode());
+        assertEquals(0.25D, config.slotRandomizationActiveCountMin());
+        assertEquals(0.75D, config.slotRandomizationActiveCountMax());
         assertEquals(2.5D, config.revealFailDamage());
         assertEquals(60, config.seekerEntryInvulnerableTicks());
         assertEquals(35, config.revealedBlockInvulnerableTicks());
@@ -74,6 +87,7 @@ class HideSeekConfigTest {
         assertTrue(saved.contains("\"revealed_block_invulnerable_ticks\""));
         assertTrue(saved.contains("\"revealed_proxy_slime_scale\""));
         assertTrue(saved.contains("\"seeker_max_health\""));
+        assertTrue(saved.contains("\"mode\": \"count\""));
         assertTrue(saved.contains("\"interactable_block_whitelist\""));
     }
 }

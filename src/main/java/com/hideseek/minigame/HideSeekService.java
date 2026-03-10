@@ -215,6 +215,7 @@ public final class HideSeekService {
     private List<HideSeekMapRuntimeSupport.ResolvedDisguiseBlock> currentRoundDisguiseBlocks;
     private int seekerCountOverride;
     private boolean debugAllowBlockDisguiseOutsideGame;
+    private boolean maintenanceMode;
     private GamePhase gamePhase;
     private long phaseEndTick;
     private int lastCountdownNoticeSecond;
@@ -331,6 +332,7 @@ public final class HideSeekService {
         this.currentRoundDisguiseBlocks = List.of();
         this.seekerCountOverride = NO_SEEKER_OVERRIDE;
         this.debugAllowBlockDisguiseOutsideGame = false;
+        this.maintenanceMode = false;
         this.gamePhase = GamePhase.IDLE;
         this.phaseEndTick = 0L;
         this.lastCountdownNoticeSecond = -1;
@@ -484,6 +486,16 @@ public final class HideSeekService {
     }
 
     public void onPlayerJoinInternal(ServerPlayerEntity player) {
+        HideSeekDecisionPolicies.JoinModeDecision joinModeDecision = HideSeekDecisionPolicies.decideJoinModeAction(
+                this.maintenanceMode,
+                this.isOperator(player),
+                this.currentGameMode(player) == GameMode.ADVENTURE,
+                this.gamePhase
+        );
+        if (this.applyJoinModeDecision(player, joinModeDecision)) {
+            return;
+        }
+
         if (this.gamePhase == GamePhase.IDLE) {
             return;
         }
@@ -497,6 +509,16 @@ public final class HideSeekService {
 
         player.changeGameMode(GameMode.ADVENTURE);
         this.applyTeamHealth(player);
+    }
+
+    public Text setMaintenanceMode() {
+        this.maintenanceMode = true;
+        return this.renderMessage(this.textMessage("server_mode_maintenance"), 0, 0, "", "");
+    }
+
+    public Text setNormalMode() {
+        this.maintenanceMode = false;
+        return this.renderMessage(this.textMessage("server_mode_normal"), 0, 0, "", "");
     }
 
     public void onPlayerDisconnect(ServerPlayerEntity player) {
@@ -1993,6 +2015,43 @@ public final class HideSeekService {
         }
     }
 
+    private boolean applyJoinModeDecision(ServerPlayerEntity player, HideSeekDecisionPolicies.JoinModeDecision decision) {
+        if (player == null || decision == null || decision == HideSeekDecisionPolicies.JoinModeDecision.NONE) {
+            return false;
+        }
+        return switch (decision) {
+            case FORCE_SPECTATOR -> {
+                player.changeGameMode(GameMode.SPECTATOR);
+                this.clearDisguiseHud(player);
+                yield true;
+            }
+            case FORCE_ADVENTURE_TO_SPAWN -> {
+                player.changeGameMode(GameMode.ADVENTURE);
+                this.teleportPlayerToSpawn(player);
+                this.applyTeamHealth(player);
+                yield true;
+            }
+            case FORCE_SPECTATOR_TO_SPAWN -> {
+                player.changeGameMode(GameMode.SPECTATOR);
+                this.teleportPlayerToSpawn(player);
+                this.clearDisguiseHud(player);
+                yield true;
+            }
+            case NONE -> false;
+        };
+    }
+
+    private boolean isOperator(ServerPlayerEntity player) {
+        return player != null && this.server.getPlayerManager().isOperator(player.getGameProfile());
+    }
+
+    private GameMode currentGameMode(ServerPlayerEntity player) {
+        if (player == null || player.interactionManager == null || player.interactionManager.getGameMode() == null) {
+            return GameMode.ADVENTURE;
+        }
+        return player.interactionManager.getGameMode();
+    }
+
     private void pickPlayers(List<ServerPlayerEntity> target, List<ServerPlayerEntity> source, int targetCount) {
         for (ServerPlayerEntity candidate : source) {
             if (target.size() >= targetCount) {
@@ -3160,6 +3219,10 @@ public final class HideSeekService {
         BlockPos origin = new BlockPos(this.config.mapOriginX(), this.config.mapOriginY(), this.config.mapOriginZ());
         HideSeekMapRuntimeSupport.preloadChunks(world, origin, this.config.gameSpaceSizeX(), this.config.gameSpaceSizeZ());
         long seed = HideSeekMapRuntimeSupport.mapSeed(this.server.getTicks(), templateId, this.config.slotRandomizationSeedSalt());
+        Identifier emptyTemplateId = HideSeekMapRuntimeSupport.resolveEmptyTemplateId(templateId);
+        if (emptyTemplateId != null && !emptyTemplateId.equals(templateId)) {
+            HideSeekMapRuntimeSupport.pasteStructure(world, emptyTemplateId, origin, seed ^ 0x9E3779B97F4A7C15L, this.logger);
+        }
         HideSeekMapRuntimeSupport.pasteStructure(world, templateId, origin, seed, this.logger);
 
         List<HideSeekDisguiseBlockConfig> effectiveDisguiseBlocks = (map.disguiseBlocks() != null && !map.disguiseBlocks().isEmpty())
@@ -3187,6 +3250,7 @@ public final class HideSeekService {
                     this.config.gameSpaceSizeZ(),
                     this.resolveBlockState(this.config.slotRandomizationRemoveState()),
                     resolvedDisguiseBlocks,
+                    this.config.slotRandomizationActiveCountMode(),
                     this.config.slotRandomizationActiveCountMin(),
                     this.config.slotRandomizationActiveCountMax(),
                     Random.create(seed ^ 0xD1B54A32D192ED03L)
@@ -4030,10 +4094,17 @@ public final class HideSeekService {
         return text.copy().styled(style -> style.withItalic(false));
     }
 
-    private void teleportAllToSpawn() {
+    private void teleportPlayerToSpawn(ServerPlayerEntity player) {
+        if (player == null) {
+            return;
+        }
         String worldId = this.spawnWorldId == null || this.spawnWorldId.isBlank() ? "minecraft:overworld" : this.spawnWorldId;
+        HideSeekTeleportSupport.teleportPlayer(this.server, player, worldId, this.spawnX, this.spawnY, this.spawnZ);
+    }
+
+    private void teleportAllToSpawn() {
         for (ServerPlayerEntity player : this.server.getPlayerManager().getPlayerList()) {
-            HideSeekTeleportSupport.teleportPlayer(this.server, player, worldId, this.spawnX, this.spawnY, this.spawnZ);
+            this.teleportPlayerToSpawn(player);
         }
     }
 

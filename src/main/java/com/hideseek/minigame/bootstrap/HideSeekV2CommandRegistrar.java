@@ -39,6 +39,31 @@ public final class HideSeekV2CommandRegistrar {
                                         return Command.SINGLE_SUCCESS;
                                     })
                             )
+                            .then(CommandManager.literal("mode")
+                                    .requires(Permissions.require(HideSeek.MOD_ID + ".command.mode", 2))
+                                    .then(CommandManager.literal("maintenance")
+                                            .executes(context -> {
+                                                HideSeekService service = this.requireService(context.getSource());
+                                                if (service == null) {
+                                                    return 0;
+                                                }
+
+                                                context.getSource().sendFeedback(service::setMaintenanceMode, true);
+                                                return Command.SINGLE_SUCCESS;
+                                            })
+                                    )
+                                    .then(CommandManager.literal("normal")
+                                            .executes(context -> {
+                                                HideSeekService service = this.requireService(context.getSource());
+                                                if (service == null) {
+                                                    return 0;
+                                                }
+
+                                                context.getSource().sendFeedback(service::setNormalMode, true);
+                                                return Command.SINGLE_SUCCESS;
+                                            })
+                                    )
+                            )
                             .then(CommandManager.literal("team")
                                     .then(CommandManager.literal("randomize")
                                             .requires(Permissions.require(HideSeek.MOD_ID + ".command.team.randomize", 2))

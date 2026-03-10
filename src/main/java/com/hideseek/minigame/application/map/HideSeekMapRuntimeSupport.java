@@ -57,6 +57,18 @@ public final class HideSeekMapRuntimeSupport {
         return (nowTick * 31L) ^ (h1 << 1) ^ (h2 << 7);
     }
 
+    public static Identifier resolveEmptyTemplateId(Identifier templateId) {
+        if (templateId == null) {
+            return null;
+        }
+        String path = templateId.getPath();
+        int lastSlash = path.lastIndexOf('/');
+        String emptyPath = lastSlash >= 0
+                ? path.substring(0, lastSlash + 1) + "empty"
+                : "empty";
+        return Identifier.of(templateId.getNamespace(), emptyPath);
+    }
+
     public static void preloadChunks(ServerWorld world, BlockPos origin, int sizeX, int sizeZ) {
         if (sizeX <= 0 || sizeZ <= 0) {
             return;
@@ -140,8 +152,9 @@ public final class HideSeekMapRuntimeSupport {
             int sizeZ,
             BlockState removeState,
             List<ResolvedDisguiseBlock> resolved,
-            int activeMin,
-            int activeMax,
+            String activeCountMode,
+            double activeMin,
+            double activeMax,
             Random random
     ) {
         if (resolved == null || resolved.isEmpty()) {
@@ -173,8 +186,10 @@ public final class HideSeekMapRuntimeSupport {
             return;
         }
 
-        int normalizedMin = Math.max(0, activeMin);
-        int normalizedMax = Math.max(normalizedMin, activeMax);
+        int normalizedMin = resolveActiveCount(activeCountMode, activeMin, totalSlots);
+        int normalizedMax = resolveActiveCount(activeCountMode, activeMax, totalSlots);
+        normalizedMin = Math.max(0, Math.min(normalizedMin, totalSlots));
+        normalizedMax = Math.max(normalizedMin, Math.min(normalizedMax, totalSlots));
         int targetActive = normalizedMax <= normalizedMin
                 ? normalizedMin
                 : normalizedMin + random.nextInt(normalizedMax - normalizedMin + 1);
@@ -195,6 +210,17 @@ public final class HideSeekMapRuntimeSupport {
             slots.set(i, slots.get(j));
             slots.set(j, a);
         }
+    }
+
+    private static int resolveActiveCount(String activeCountMode, double value, int totalSlots) {
+        if ("ratio".equalsIgnoreCase(activeCountMode)) {
+            double normalized = Math.max(0.0D, Math.min(1.0D, value));
+            return (int) Math.round(normalized * totalSlots);
+        }
+        if (!Double.isFinite(value)) {
+            return 0;
+        }
+        return Math.max(0, (int) Math.round(value));
     }
 
     public record ResolvedDisguiseBlock(BlockState disguiseBlockState, BlockState markerBlockState, double weight) {

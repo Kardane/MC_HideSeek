@@ -58,6 +58,7 @@
 기본 루트 명령어: `/hideseek`
 
 - `/hideseek reload`
+- `/hideseek mode maintenance|normal`
 - `/hideseek team randomize [seekerCount]`
 - `/hideseek team reset`
 - `/hideseek game start`
@@ -72,6 +73,7 @@
 ## 권한 노드
 
 - `hideseek.command.reload`
+- `hideseek.command.mode`
 - `hideseek.command.team.randomize`
 - `hideseek.command.game.start`
 - `hideseek.command.job.others`
@@ -142,8 +144,9 @@
 | `slot_randomization.enabled` | `true` | 라운드 시작 시 슬롯 랜덤화 사용 여부 |
 | `slot_randomization.mode` | `place_or_remove` | 슬롯 처리 모드 |
 | `slot_randomization.remove_state` | `minecraft:air` | 비활성 슬롯 치환 블록 |
-| `slot_randomization.active_count.min` | `120` | 활성 슬롯 최소 개수 |
-| `slot_randomization.active_count.max` | `200` | 활성 슬롯 최대 개수 |
+| `slot_randomization.active_count.mode` | `count` | `count`면 개수, `ratio`면 전체 슬롯 대비 비율 |
+| `slot_randomization.active_count.min` | `120` | 활성 슬롯 최소 개수 또는 최소 비율 |
+| `slot_randomization.active_count.max` | `200` | 활성 슬롯 최대 개수 또는 최대 비율 |
 | `slot_randomization.seed_salt` | `hideseek_slots_v1` | 랜덤 시드 보조 문자열 |
 | `defaults.disguise_blocks` | 2개 기본 엔트리 | 맵별 설정이 없을 때 기본 위장 후보 |
 
@@ -178,6 +181,10 @@
 
 - `messages`: 알림, 승패, 쿨다운, 오류, 직업 설명 등
 - `gui_texts`: 메뉴 제목/버튼/통계 라벨
+- 맵 선택 메시지도 여기서 조정 가능
+  - `messages.map_selected_feedback`
+  - `messages.map_selected_broadcast`
+  - `messages.map_selected_invalid`
 - `&` 또는 `§` 색 코드 사용 가능
 - `\\n` 또는 실제 줄바꿈 둘 다 처리 가능
 
@@ -262,6 +269,7 @@
 동작 포인트:
 
 - 라운드 시작 시 마커 블록 스캔 후 실제 블록으로 치환
+- 실제 맵 구조물을 붙이기 전에 같은 폴더의 `empty` 구조물을 먼저 붙여 기존 블록과 waterlogged 잔재를 비움
 - 맵 파일에 `spawn_world/x/y/z`가 모두 있으면 그 좌표로 블록팀/술래를 입장시킴
 - 맵 스폰 좌표가 없으면 기존 `hide_seek.json`의 `arena_world`, `arena_x/y/z`를 그대로 사용
 - `slot_randomization` 설정으로 활성 슬롯 수 랜덤 결정
@@ -275,10 +283,16 @@
    - `marker_block_state` 중복은 첫 엔트리만 유지
    - 맵 파일에 `disguise_blocks`가 없거나 비어 있으면 `hide_seek.json`의 `defaults.disguise_blocks` 사용
 2. 구조물을 `map_origin`에 붙여넣은 뒤 `game_space_size` 범위를 3중 루프로 스캔
+   - 먼저 선택한 `structure_template`와 같은 폴더의 `empty` 템플릿을 시도
+   - 예: `hideseek:arena/arena_01`이면 `hideseek:arena/empty`를 먼저 붙인 뒤 `hideseek:arena/arena_01`을 붙임
 3. 스캔한 위치의 현재 블록이 `marker_block_state`와 일치하면 슬롯 후보로 수집
 4. 활성 슬롯 수를 계산
-   - `normalizedMin = max(0, active_count.min)`
-   - `normalizedMax = max(normalizedMin, active_count.max)`
+   - `active_count.mode = count`면
+     - `normalizedMin = max(0, round(active_count.min))`
+     - `normalizedMax = max(normalizedMin, round(active_count.max))`
+   - `active_count.mode = ratio`면
+     - `normalizedMin = round(totalSlots * clamp(active_count.min, 0.0, 1.0))`
+     - `normalizedMax = round(totalSlots * clamp(active_count.max, normalizedMinRatio, 1.0))`
    - `targetActive = random[min..max]` (단, 전체 슬롯 수보다 크면 전체 슬롯 수로 절삭)
 5. 슬롯 후보를 셔플한 뒤 앞에서 `targetActive`개는 `block_state`로 치환
 6. 나머지 슬롯은 `slot_randomization.remove_state`로 치환
