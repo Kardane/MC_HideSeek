@@ -200,9 +200,9 @@
 
 | 직업 | 키 |
 |---|---|
-| 사냥꾼 | `hunter_interaction_range_bonus`, `hunter_speed_boost_ticks`, `hunter_speed_boost_amplifier`, `hunter_leap_cooldown_ticks` |
+| 사냥꾼 | `hunter_speed_boost_ticks`, `hunter_speed_boost_amplifier`, `hunter_leap_cooldown_ticks` |
 | 봄버 | `bomber_cooldown_ticks`, `bomber_fuse_ticks`, `bomber_throw_speed`, `bomber_explosion_radius`, `bomber_damage` |
-| 워든 | `warden_speed_penalty_ratio`, `warden_cooldown_ticks`, `warden_unlock_delay_ticks`, `warden_glow_ticks`, `warden_no_disguise_ticks`, `warden_search_range` |
+| 워든 | `warden_speed_penalty_ratio`, `warden_cooldown_ticks`, `warden_unlock_delay_ticks`, `warden_no_disguise_ticks`, `warden_search_range` |
 
 블록 직업 키:
 

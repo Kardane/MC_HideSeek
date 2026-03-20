@@ -37,6 +37,8 @@ class HideSeekTextConfigTest {
         assertEquals("[HideSeek] 선택된 맵: {map}", config.message("map_selected_feedback"));
         assertEquals("[HideSeek] 다음 라운드 맵이 {map}(으)로 선택됨", config.message("map_selected_broadcast"));
         assertEquals("[HideSeek] 등록되지 않은 맵: {map}", config.message("map_selected_invalid"));
+        assertEquals("[HideSeek] 지금은 술래 직업 변경 불가", config.message("seeker_job_menu_unavailable"));
+        assertEquals("&8술래 직업 변경", config.guiText("seeker_waiting_jobs_title"));
 
         String saved = Files.readString(configPath);
         assertTrue(saved.contains("\"server_mode_maintenance\""));
@@ -44,5 +46,7 @@ class HideSeekTextConfigTest {
         assertTrue(saved.contains("\"map_selected_feedback\""));
         assertTrue(saved.contains("\"map_selected_broadcast\""));
         assertTrue(saved.contains("\"map_selected_invalid\""));
+        assertTrue(saved.contains("\"seeker_job_menu_unavailable\""));
+        assertTrue(saved.contains("\"seeker_waiting_jobs_title\""));
     }
 }

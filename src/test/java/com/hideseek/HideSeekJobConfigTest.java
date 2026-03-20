@@ -53,6 +53,8 @@ class HideSeekJobConfigTest {
         HideSeekJobConfig.loadOrCreate(configPath, LoggerFactory.getLogger("HideSeekJobConfigTest"));
 
         String saved = Files.readString(configPath);
+        assertTrue(!saved.contains("\"hunter_interaction_range_bonus\""));
+        assertTrue(!saved.contains("\"warden_glow_ticks\""));
         assertTrue(saved.contains("\"shapeshifter_stealth_ticks\""));
         assertTrue(saved.contains("\"shapeshifter_speed_ticks\""));
         assertTrue(saved.contains("\"shapeshifter_speed_amplifier\""));

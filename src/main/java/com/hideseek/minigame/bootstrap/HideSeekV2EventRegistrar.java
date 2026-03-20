@@ -59,9 +59,6 @@ public final class HideSeekV2EventRegistrar {
                 return false;
             }
             HideSeekService service = this.runtime.service();
-            if (service != null && service.tryRedirectRevealedProxyDamage(entity, source, amount)) {
-                return false;
-            }
             if (!(entity instanceof ServerPlayerEntity)) {
                 return true;
             }

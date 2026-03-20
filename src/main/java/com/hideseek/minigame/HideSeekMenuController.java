@@ -138,6 +138,18 @@ public final class HideSeekMenuController {
         gui.open();
     }
 
+    public void openSeekerWaitingJobMenu(ServerPlayerEntity player) {
+        SimpleGui gui = new SimpleGui(ScreenHandlerType.HOPPER, player, false);
+        gui.setTitle(this.service.menuGuiText("seeker_waiting_jobs_title"));
+        gui.setLockPlayerInventory(true);
+
+        gui.setSlot(0, this.createJobButton(player, Items.CROSSBOW, this.service.menuTextConfigValue("job_hunter"), () -> this.service.setSeekerWaitingJob(player, SeekerJob.HUNTER), this::openSeekerWaitingJobMenu));
+        gui.setSlot(1, this.createJobButton(player, Items.TNT, this.service.menuTextConfigValue("job_bomber"), () -> this.service.setSeekerWaitingJob(player, SeekerJob.BOMBER), this::openSeekerWaitingJobMenu));
+        gui.setSlot(2, this.createJobButton(player, Items.ECHO_SHARD, this.service.menuTextConfigValue("job_warden"), () -> this.service.setSeekerWaitingJob(player, SeekerJob.WARDEN), this::openSeekerWaitingJobMenu));
+        gui.setSlot(3, this.createCloseButton(player));
+        gui.open();
+    }
+
     public void openOpControlMenu(ServerPlayerEntity player) {
         SimpleGui gui = new SimpleGui(ScreenHandlerType.GENERIC_9X1, player, false);
         gui.setTitle(this.service.menuGuiText("op_title"));

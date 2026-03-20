@@ -30,6 +30,11 @@ public abstract class ShiftSwapMenuMixin {
             return;
         }
 
+        if (service.tryOpenSeekerWaitingJobMenu(this.player)) {
+            ci.cancel();
+            return;
+        }
+
         if (service.tryOpenSelectionMenu(this.player)) {
             ci.cancel();
         }

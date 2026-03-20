@@ -155,9 +155,10 @@ public final class HideSeekTextConfig {
         map.put("map_selected_invalid", "[HideSeek] 등록되지 않은 맵: {map}");
         map.put("test_block_disguise_enabled", "[HideSeek] 테스트: 블록팀 위장 상시 허용 ON");
         map.put("test_block_disguise_disabled", "[HideSeek] 테스트: 블록팀 위장 상시 허용 OFF");
-        map.put("job_description_hunter", "&c[사냥꾼] &7깃털 우클릭으로 전방 도약, 블록 상호작용 거리 증가");
+        map.put("job_description_hunter", "&c[사냥꾼] &7깃털 우클릭으로 전방 도약, 전투 시작 시 활 지급");
         map.put("job_description_bomber", "&c[봄버] &7TNT 투척으로 범위 발각 및 피해 부여");
-        map.put("job_description_warden", "&c[워든] &7가장 가까운 블록팀을 지연 발각");
+        map.put("job_description_warden", "&c[워든] &7음파를 날려 도착 시 가장 가까운 블록팀 위장 해제");
+        map.put("seeker_job_menu_unavailable", "[HideSeek] 지금은 술래 직업 변경 불가");
         map.put("job_description_shapeshifter", "&a[형상변환자] &7위장 블록을 다시 굴림");
         map.put("job_description_attention_seed", "&a[관심종자] &7폭죽으로 남은 전투 시간을 단축");
         map.put("job_description_magician", "&a[마술사] &7주변 술래 시야를 교란");
@@ -193,6 +194,7 @@ public final class HideSeekTextConfig {
         map.put("jobs_root_block", "&a블록 직업");
         map.put("jobs_seeker_title", "&8술래 직업");
         map.put("jobs_block_title", "&8블록 직업");
+        map.put("seeker_waiting_jobs_title", "&8술래 직업 변경");
         map.put("job_hunter", "&c사냥꾼");
         map.put("job_bomber", "&c봄버");
         map.put("job_warden", "&c워든");

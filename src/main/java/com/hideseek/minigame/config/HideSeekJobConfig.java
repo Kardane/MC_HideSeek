@@ -18,7 +18,6 @@ import java.util.List;
 public final class HideSeekJobConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    private final double hunterInteractionRangeBonus;
     private final int hunterSpeedBoostTicks;
     private final int hunterSpeedBoostAmplifier;
     private final int hunterLeapCooldownTicks;
@@ -32,7 +31,6 @@ public final class HideSeekJobConfig {
     private final double wardenSpeedPenaltyRatio;
     private final int wardenCooldownTicks;
     private final int wardenUnlockDelayTicks;
-    private final int wardenGlowTicks;
     private final int wardenNoDisguiseTicks;
     private final double wardenSearchRange;
 
@@ -61,7 +59,6 @@ public final class HideSeekJobConfig {
     private final List<String> magicianItemLore;
 
     private HideSeekJobConfig(
-            double hunterInteractionRangeBonus,
             int hunterSpeedBoostTicks,
             int hunterSpeedBoostAmplifier,
             int hunterLeapCooldownTicks,
@@ -73,7 +70,6 @@ public final class HideSeekJobConfig {
             double wardenSpeedPenaltyRatio,
             int wardenCooldownTicks,
             int wardenUnlockDelayTicks,
-            int wardenGlowTicks,
             int wardenNoDisguiseTicks,
             double wardenSearchRange,
             int shapeshifterCooldownTicks,
@@ -99,7 +95,6 @@ public final class HideSeekJobConfig {
             String magicianItemName,
             List<String> magicianItemLore
     ) {
-        this.hunterInteractionRangeBonus = hunterInteractionRangeBonus;
         this.hunterSpeedBoostTicks = hunterSpeedBoostTicks;
         this.hunterSpeedBoostAmplifier = hunterSpeedBoostAmplifier;
         this.hunterLeapCooldownTicks = hunterLeapCooldownTicks;
@@ -111,7 +106,6 @@ public final class HideSeekJobConfig {
         this.wardenSpeedPenaltyRatio = wardenSpeedPenaltyRatio;
         this.wardenCooldownTicks = wardenCooldownTicks;
         this.wardenUnlockDelayTicks = wardenUnlockDelayTicks;
-        this.wardenGlowTicks = wardenGlowTicks;
         this.wardenNoDisguiseTicks = wardenNoDisguiseTicks;
         this.wardenSearchRange = wardenSearchRange;
         this.shapeshifterCooldownTicks = shapeshifterCooldownTicks;
@@ -141,7 +135,6 @@ public final class HideSeekJobConfig {
 
     public static HideSeekJobConfig defaults() {
         return new HideSeekJobConfig(
-                1.0D,
                 30,
 				0,
 				160,
@@ -153,7 +146,6 @@ public final class HideSeekJobConfig {
                 0.10D,
                 1200,
                 1200,
-                60,
                 60,
                 128.0D,
                 200,
@@ -171,7 +163,7 @@ public final class HideSeekJobConfig {
                 "사냥꾼 깃털",
                 List.of("우클릭: 바라보는 방향으로 도약"),
                 "워든 나침판",
-                List.of("우클릭: 가장 가까운 블록팀 발각", "발광 + 위장 금지 부여"),
+                List.of("우클릭: 가장 가까운 블록팀에게 음파 발사", "도착 시 위장 해제 + 위장 금지 부여"),
                 "형상변환자 점액구슬",
                 List.of("우클릭: 위장 블록 변경"),
                 "관심종자 폭죽",
@@ -196,7 +188,6 @@ public final class HideSeekJobConfig {
 
             JsonObject json = JsonParser.parseString(Files.readString(path)).getAsJsonObject();
             HideSeekJobConfig loaded = sanitize(
-                    readDouble(json, "hunter_interaction_range_bonus", defaults.hunterInteractionRangeBonus),
                     readInt(json, "hunter_speed_boost_ticks", defaults.hunterSpeedBoostTicks),
                     readInt(json, "hunter_speed_boost_amplifier", defaults.hunterSpeedBoostAmplifier),
                     readInt(json, "hunter_leap_cooldown_ticks", defaults.hunterLeapCooldownTicks),
@@ -208,7 +199,6 @@ public final class HideSeekJobConfig {
                     readDouble(json, "warden_speed_penalty_ratio", defaults.wardenSpeedPenaltyRatio),
                     readInt(json, "warden_cooldown_ticks", defaults.wardenCooldownTicks),
                     readInt(json, "warden_unlock_delay_ticks", defaults.wardenUnlockDelayTicks),
-                    readInt(json, "warden_glow_ticks", defaults.wardenGlowTicks),
                     readInt(json, "warden_no_disguise_ticks", defaults.wardenNoDisguiseTicks),
                     readDouble(json, "warden_search_range", defaults.wardenSearchRange),
                     readInt(json, "shapeshifter_cooldown_ticks", defaults.shapeshifterCooldownTicks),
@@ -249,7 +239,6 @@ public final class HideSeekJobConfig {
     }
 
     private static HideSeekJobConfig sanitize(
-            double hunterInteractionRangeBonus,
             int hunterSpeedBoostTicks,
             int hunterSpeedBoostAmplifier,
             int hunterLeapCooldownTicks,
@@ -261,7 +250,6 @@ public final class HideSeekJobConfig {
             double wardenSpeedPenaltyRatio,
             int wardenCooldownTicks,
             int wardenUnlockDelayTicks,
-            int wardenGlowTicks,
             int wardenNoDisguiseTicks,
             double wardenSearchRange,
             int shapeshifterCooldownTicks,
@@ -287,7 +275,6 @@ public final class HideSeekJobConfig {
             String magicianItemName,
             List<String> magicianItemLore
     ) {
-        double safeHunterRange = Double.isFinite(hunterInteractionRangeBonus) ? Math.max(0.0D, hunterInteractionRangeBonus) : 1.0D;
         int safeHunterTicks = Math.max(1, hunterSpeedBoostTicks);
         int safeHunterAmp = Math.max(0, hunterSpeedBoostAmplifier);
         int safeHunterLeapCooldown = Math.max(1, hunterLeapCooldownTicks);
@@ -301,7 +288,6 @@ public final class HideSeekJobConfig {
         double safeWardenPenalty = Double.isFinite(wardenSpeedPenaltyRatio) ? Math.max(0.0D, Math.min(0.95D, wardenSpeedPenaltyRatio)) : 0.10D;
         int safeWardenCooldown = Math.max(1, wardenCooldownTicks);
         int safeWardenUnlock = Math.max(0, wardenUnlockDelayTicks);
-        int safeWardenGlow = Math.max(1, wardenGlowTicks);
         int safeWardenNoDisguise = Math.max(1, wardenNoDisguiseTicks);
         double safeWardenRange = Double.isFinite(wardenSearchRange) ? Math.max(0.0D, wardenSearchRange) : 128.0D;
 
@@ -332,7 +318,6 @@ public final class HideSeekJobConfig {
         List<String> safeMagicianItemLore = sanitizeLore(magicianItemLore);
 
         return new HideSeekJobConfig(
-                safeHunterRange,
                 safeHunterTicks,
                 safeHunterAmp,
                 safeHunterLeapCooldown,
@@ -344,7 +329,6 @@ public final class HideSeekJobConfig {
                 safeWardenPenalty,
                 safeWardenCooldown,
                 safeWardenUnlock,
-                safeWardenGlow,
                 safeWardenNoDisguise,
                 safeWardenRange,
                 safeShapeshifterCooldown,
@@ -443,7 +427,6 @@ public final class HideSeekJobConfig {
 
     private void save(Path path) throws IOException {
         JsonObject json = new JsonObject();
-        json.addProperty("hunter_interaction_range_bonus", this.hunterInteractionRangeBonus);
         json.addProperty("hunter_speed_boost_ticks", this.hunterSpeedBoostTicks);
         json.addProperty("hunter_speed_boost_amplifier", this.hunterSpeedBoostAmplifier);
         json.addProperty("hunter_leap_cooldown_ticks", this.hunterLeapCooldownTicks);
@@ -457,7 +440,6 @@ public final class HideSeekJobConfig {
         json.addProperty("warden_speed_penalty_ratio", this.wardenSpeedPenaltyRatio);
         json.addProperty("warden_cooldown_ticks", this.wardenCooldownTicks);
         json.addProperty("warden_unlock_delay_ticks", this.wardenUnlockDelayTicks);
-        json.addProperty("warden_glow_ticks", this.wardenGlowTicks);
         json.addProperty("warden_no_disguise_ticks", this.wardenNoDisguiseTicks);
         json.addProperty("warden_search_range", this.wardenSearchRange);
 
@@ -494,10 +476,6 @@ public final class HideSeekJobConfig {
             array.add(value);
         }
         json.add(key, array);
-    }
-
-    public double hunterInteractionRangeBonus() {
-        return this.hunterInteractionRangeBonus;
     }
 
     public int hunterSpeedBoostTicks() {
@@ -542,10 +520,6 @@ public final class HideSeekJobConfig {
 
     public int wardenUnlockDelayTicks() {
         return this.wardenUnlockDelayTicks;
-    }
-
-    public int wardenGlowTicks() {
-        return this.wardenGlowTicks;
     }
 
     public int wardenNoDisguiseTicks() {
